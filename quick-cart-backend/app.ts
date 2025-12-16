@@ -1,7 +1,5 @@
 import express, { Application } from "express";
 import cors from "cors";
-import { WebSocketServer, WebSocket } from "ws";
-import { Server } from "http";
 import { setupSwagger } from "./src/config/swagger.config.js";
 import { globalLimiter } from "./src/middleware/rate-limit.js";
 
@@ -62,28 +60,13 @@ app.use("/api/v1/message", messageRoute);
 app.use("/api/v1/payment", paymentRoute);
 app.use("/api/v1/vendor", vendorRoute);
 
-// Start the server
-const PORT: string = process.env.PORT || "3000";
-const server: Server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Export for Vercel serverless
+export default app;
 
-// Set up WebSocket server
-const wss = new WebSocketServer({ server });
-
-wss.on("connection", (ws: WebSocket) => {
-  console.log("Client connected");
-
-  ws.on("message", (message: Buffer) => {
-    // Broadcast message to all connected clients
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
+// Only start server if not in serverless environment
+if (process.env.NODE_ENV !== "production") {
+  const PORT: string = process.env.PORT || "3000";
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
   });
-
-  ws.on("close", () => {
-    console.log("Client disconnected");
-  });
-});
+}
