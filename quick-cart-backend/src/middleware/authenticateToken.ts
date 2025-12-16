@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Response, NextFunction } from "express";
-import { AuthenticatedRequest, JWTPayload } from "../types/index.js";
+import { AuthenticatedRequest, JwtPayload } from "../types/index.js";
 
 export const authenticateToken = (
   req: AuthenticatedRequest,
@@ -19,7 +19,7 @@ export const authenticateToken = (
     const decoded = jwt.verify(
       token as string,
       process.env.JWT_SECRET_KEY || ""
-    ) as JWTPayload;
+    ) as JwtPayload;
     req.user = {
       id: decoded.id,
       role: decoded.role,

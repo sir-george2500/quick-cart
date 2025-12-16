@@ -7,6 +7,7 @@
     "dev": "tsx watch app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
+    "vercel-build": "prisma generate && tsc",
     "type-check": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -47,6 +48,7 @@
     "@types/nodemailer": "^6.4.16",
     "@types/swagger-ui-express": "^4.1.6",
     "@types/ws": "^8.5.13",
+    "@vercel/node": "^3.0.0",
     "jest-mock-extended": "^4.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
