@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "buildCommand": "cd quick-cart-backend && npm run build",
+  "outputDirectory": "quick-cart-backend/dist",
+  "builds": [
+    {
+      "src": "quick-cart-backend/dist/app.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/v1/(.*)",
+      "dest": "quick-cart-backend/dist/app.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "quick-cart-backend/dist/app.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
