@@ -10,16 +10,19 @@ import {
   LoginBody,
   CreateSellerBody,
   CreateAdminBody,
+  JwtPayload,
+  RefreshTokenPayload,
 } from "../types/index.js";
+import { tokenBlacklist } from "../shared/services/token-blacklist.service.js";
+import { UserRole } from "@prisma/client";
 
-// Register a new user
+//Register a new user with RBAC
 export const registerUser = async (
   req: Request<{}, {}, RegisterUserBody>,
   res: Response
 ): Promise<void | Response> => {
   try {
     const { name, email, password, role } = req.body;
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const userEmail = await prisma.user.findUnique({ where: { email } });
@@ -29,12 +32,20 @@ export const registerUser = async (
         .json({ success: false, message: "User already exists" });
     }
 
+    // Get the appropriate role from database
+    const userRoleEnum =
+      role === "VENDOR" ? UserRole.VENDOR : UserRole.CUSTOMER;
+    const roleRecord = await prisma.role.findUnique({
+      where: { name: userRoleEnum },
+    });
+
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role,
+        role, // Keep string for backward compatibility
+        roleId: roleRecord?.id, // Link to RBAC role
       },
     });
 
@@ -45,7 +56,7 @@ export const registerUser = async (
   }
 };
 
-// Login a user
+// Login with RBAC integration
 export const login = async (
   req: Request<{}, {}, LoginBody>,
   res: Response
@@ -53,37 +64,59 @@ export const login = async (
   const { email, password } = req.body;
 
   try {
-    // Check if the user exists
+    // Check if user exists with role information
     const user = await prisma.user.findUnique({
       where: { email },
+      include: { roleRelation: true }, // Include RBAC role
     });
 
     if (!user) return res.status(401).json({ message: "Invalid Credentials!" });
 
-    // Check if the password is correct
+    // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
     if (!isPasswordValid)
       return res.status(401).json({ message: "Invalid Credentials!" });
 
-    // Generate cookie token and send to the user
-    const age = 1000 * 60 * 60 * 24 * 7; // 7 days
+    // Access token: 15 minutes
+    const accessTokenAge = 1000 * 60 * 15;
+    // Refresh token: 7 days
+    const refreshTokenAge = 1000 * 60 * 60 * 24 * 7;
 
-    const token = jwt.sign(
+    // Create access token with RBAC info
+    const accessToken = jwt.sign(
       {
         id: user.id,
-      },
+        role: user.role,
+        roleId: user.roleId,
+        permissions: [
+          ...(user.roleRelation?.permissions || []),
+          ...user.permissions,
+        ],
+      } as JwtPayload,
       process.env.JWT_SECRET_KEY || "",
-      { expiresIn: age }
+      { expiresIn: accessTokenAge }
+    );
+
+    // Create refresh token
+    const refreshToken = jwt.sign(
+      {
+        id: user.id,
+        type: "refresh",
+      } as RefreshTokenPayload,
+      process.env.JWT_SECRET_KEY || "",
+      { expiresIn: refreshTokenAge }
     );
 
     const { password: userPassword, ...userInfo } = user;
 
     res
-      .cookie("token", token, {
+      .cookie("token", accessToken, {
         httpOnly: true,
-        //secure:true
-        maxAge: age,
+        maxAge: accessTokenAge,
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        maxAge: refreshTokenAge,
       })
       .status(200)
       .json(userInfo);
@@ -93,10 +126,22 @@ export const login = async (
   }
 };
 
-// Logout a user
+// Logout with token invalidation
 export const logoutUser = (req: Request, res: Response): Response => {
+  const token = req.cookies.token;
+  const refreshToken = req.cookies.refreshToken;
+
+  // Add tokens to blacklist (15 min for access, 7 days for refresh)
+  if (token) {
+    tokenBlacklist.add(token, 1000 * 60 * 15);
+  }
+  if (refreshToken) {
+    tokenBlacklist.add(refreshToken, 1000 * 60 * 60 * 24 * 7);
+  }
+
   return res
     .clearCookie("token")
+    .clearCookie("refreshToken")
     .status(200)
     .json({ message: "Logout Successful" });
 };
@@ -175,11 +220,9 @@ export const createSeller = async (
       approvalLink: `${process.env.APP_URL}/approve-seller/${approvalToken}`,
     });
 
-    res
-      .status(201)
-      .json({
-        message: "Seller account created successfully, pending approval.",
-      });
+    res.status(201).json({
+      message: "Seller account created successfully, pending approval.",
+    });
   } catch (err) {
     const error = err as Error;
     res.status(500).json({ message: error.message });

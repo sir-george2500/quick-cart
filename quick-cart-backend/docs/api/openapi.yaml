@@ -1,0 +1,978 @@
+openapi: 3.0.3
+info:
+  title: Quick-Cart Multi-Vendor E-Commerce API
+  description: |
+    # Quick-Cart API Documentation
+
+    Welcome to the Quick-Cart Multi-Vendor E-Commerce Platform API. This API enables you to build powerful e-commerce applications with multi-vendor support, complete with role-based access control.
+
+    ## 🔐 Authentication
+
+    To test protected endpoints:
+    1. Click the **"Authorize"** button (🔓 icon) at the top right
+    2. Login using POST `/api/v1/auth/login` to get your JWT token
+    3. Enter the token in the format: `Bearer <your_token_here>`
+    4. Click **"Authorize"** to apply
+    5. Now you can test all protected endpoints!
+
+    ### Test Credentials
+    Create an account first, or ask admin for credentials.
+
+    ## 🎭 Roles & Permissions
+
+    | Role | Description | Key Permissions |
+    |------|-------------|-----------------|
+    | **SUPER_ADMIN** | Platform administrator | All permissions |
+    | **VENDOR** | Store owner/seller | Manage own products, view own orders |
+    | **CUSTOMER** | Regular user | Browse, purchase, manage own orders |
+    | **SUPPORT** | Customer support | View users, orders, products |
+
+    ## 📝 Permission System
+
+    Each endpoint shows required permissions in its description:
+    - 🔓 **Public** - No authentication required
+    - 🔒 **Protected** - Authentication required
+    - 🛡️ **Permission Required** - Specific permission needed
+    - 👤 **Ownership** - Must own the resource
+
+  version: 1.0.0
+  contact:
+    name: Quick-Cart API Support
+    email: support@quickcart.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: 🔧 Development server
+  - url: https://api.quickcart.com
+    description: 🚀 Production server
+
+tags:
+  - name: 🔐 Authentication
+    description: User registration, login, and authentication management
+  - name: 👥 Users
+    description: User profile and account management
+  - name: 🏪 Vendors
+    description: Vendor registration, verification, and management
+  - name: 📦 Products
+    description: Product catalog management (CRUD operations)
+  - name: 📂 Categories
+    description: Product category and subcategory management
+  - name: 🛒 Cart
+    description: Shopping cart operations
+  - name: 📋 Orders
+    description: Order creation, tracking, and management
+  - name: 💳 Payments
+    description: Payment processing and transaction management
+  - name: 🏬 Stores
+    description: Vendor store information and settings
+  - name: 💰 Wallet
+    description: Vendor wallet, earnings, and payout management
+  - name: 🎨 Banners
+    description: Marketing banner management
+  - name: 💬 Messages
+    description: Internal messaging system
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Enter your JWT token in the format: `Bearer <token>`
+
+        **How to get a token:**
+        1. Register or login using the auth endpoints
+        2. Copy the `accessToken` from the response
+        3. Click "Authorize" button above
+        4. Paste token and click "Authorize"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Error description"
+      required:
+        - success
+        - message
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        role:
+          type: string
+          enum: [SUPER_ADMIN, VENDOR, CUSTOMER, SUPPORT]
+          example: "CUSTOMER"
+        avatar:
+          type: string
+          nullable: true
+          example: "https://example.com/avatar.jpg"
+        phoneNumber:
+          type: string
+          nullable: true
+          example: "+1234567890"
+        isApproved:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          example: "iPhone 15 Pro"
+        description:
+          type: string
+          example: "Latest iPhone with A17 Pro chip"
+        price:
+          type: number
+          format: float
+          example: 999.99
+        discountPrice:
+          type: number
+          format: float
+          nullable: true
+          example: 899.99
+        images:
+          type: array
+          items:
+            type: string
+          example: ["https://example.com/img1.jpg"]
+        stock:
+          type: integer
+          example: 50
+        featured:
+          type: boolean
+          example: true
+        brand:
+          type: string
+          example: "Apple"
+        condition:
+          type: string
+          example: "New"
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+          example: "Electronics"
+        subTitle:
+          type: string
+          example: "Latest tech gadgets"
+        imageUrl:
+          type: string
+          example: "https://example.com/category.jpg"
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /api/v1/auth/register:
+    post:
+      tags:
+        - 🔐 Authentication
+      summary: Register new user
+      description: |
+        🔓 **Public Endpoint** - No authentication required
+
+        Register a new customer or vendor account. Vendors require admin approval before they can start selling.
+
+        ### Business Rules:
+        - Email must be unique
+        - Password minimum 8 characters
+        - Vendors are created with `isApproved: false`
+        - Customers are immediately active
+
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - role
+              properties:
+                name:
+                  type: string
+                  example: "John Doe"
+                  minLength: 2
+                email:
+                  type: string
+                  format: email
+                  example: "john@example.com"
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "SecurePass123!"
+                role:
+                  type: string
+                  enum: [CUSTOMER, VENDOR]
+                  example: "CUSTOMER"
+            examples:
+              customer:
+                summary: Register as Customer
+                value:
+                  name: "Jane Smith"
+                  email: "jane@example.com"
+                  password: "MyPassword123"
+                  role: "CUSTOMER"
+              vendor:
+                summary: Register as Vendor
+                value:
+                  name: "Tech Store Owner"
+                  email: "vendor@techstore.com"
+                  password: "VendorPass123"
+                  role: "VENDOR"
+                  businessName: "Tech Store"
+                  phoneNumber: "+1234567890"
+      responses:
+        "201":
+          description: ✅ User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Customer account created successfully"
+              examples:
+                customer:
+                  summary: Customer Registration
+                  value:
+                    message: "Customer account created successfully"
+                vendor:
+                  summary: Vendor Registration
+                  value:
+                    message: "Seller account created successfully, pending approval."
+        "400":
+          description: ❌ Bad Request - Validation error or user exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                userExists:
+                  summary: User Already Exists
+                  value:
+                    success: false
+                    message: "User already exists"
+                invalidData:
+                  summary: Invalid Input
+                  value:
+                    success: false
+                    message: "Validation failed"
+        "500":
+          description: ❌ Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - 🔐 Authentication
+      summary: User login
+      description: |
+        🔓 **Public Endpoint** - No authentication required
+
+        Authenticate with email and password to receive JWT tokens.
+
+        ### Response Tokens:
+        - **accessToken**: Use for API requests (expires in 7 days)
+        - **refreshToken**: Use to get new access token
+
+        ### How to use the token:
+        1. Copy the `accessToken` from response
+        2. Click "Authorize" button (🔓 top right)
+        3. Enter: `Bearer <your_token>`
+        4. Test protected endpoints!
+
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "john@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "SecurePass123!"
+      responses:
+        "200":
+          description: ✅ Login successful
+          headers:
+            Set-Cookie:
+              description: HTTP-only cookie with refresh token
+              schema:
+                type: string
+                example: "token=eyJhbGc...; HttpOnly; Max-Age=604800"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  avatar:
+                    type: string
+                    nullable: true
+              example:
+                id: "507f1f77bcf86cd799439011"
+                name: "John Doe"
+                email: "john@example.com"
+                role: "CUSTOMER"
+                avatar: null
+        "401":
+          description: ❌ Unauthorized - Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                message: "Invalid Credentials!"
+        "500":
+          description: ❌ Server Error
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - 🔐 Authentication
+      summary: User logout
+      description: |
+        🔒 **Protected Endpoint** - Authentication required
+
+        Clears the authentication cookie and logs out the user.
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: ✅ Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logout Successful"
+
+  /api/v1/auth/login/admin:
+    post:
+      tags:
+        - 🔐 Authentication
+      summary: Admin/Super Admin login
+      description: |
+        🔓 **Public Endpoint** - No authentication required
+
+        Special login endpoint for admin and super admin users only.
+        Regular users and vendors cannot use this endpoint.
+
+        **Allowed Roles:**
+        - SUPER_ADMIN
+        - ADMIN
+      operationId: loginAdmin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  example: "admin@quickcart.com"
+                password:
+                  type: string
+                  example: "AdminPass123!"
+      responses:
+        "200":
+          description: ✅ Admin login successful
+        "401":
+          description: ❌ Unauthorized - Not an admin or invalid credentials
+
+  # ==================== USERS ====================
+  /api/v1/user/get-users:
+    get:
+      tags:
+        - 👥 Users
+      summary: Get all users
+      description: |
+        🛡️ **Required Permission:** `USER_READ`
+
+        Retrieve a list of all users in the system.
+
+        **Accessible by:**
+        - SUPER_ADMIN ✅
+        - SUPPORT ✅
+        - Others ❌
+      operationId: getAllUsers
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: ✅ Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+        "401":
+          description: ❌ Not authenticated
+        "403":
+          description: ❌ Insufficient permissions
+
+  /api/v1/user/{userId}:
+    get:
+      tags:
+        - 👥 Users
+      summary: Get user by ID
+      description: |
+        🔒 **Protected** - Authentication required
+
+        Get detailed information about a specific user.
+        Users can view their own profile, admins can view anyone.
+      operationId: getUserById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+          example: "507f1f77bcf86cd799439011"
+      responses:
+        "200":
+          description: ✅ User found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/User"
+        "404":
+          description: ❌ User not found
+
+  /api/v1/user/{email}:
+    put:
+      tags:
+        - 👥 Users
+      summary: Update user profile
+      description: |
+        👤 **Ownership Required** - Can only update own profile
+
+        Update user profile information. Users can only update their own data.
+      operationId: updateUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "john@example.com"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phoneNumber:
+                  type: string
+                address:
+                  type: string
+                avatar:
+                  type: string
+      responses:
+        "200":
+          description: ✅ User updated successfully
+
+  /api/v1/user/forgot-password:
+    post:
+      tags:
+        - 👥 Users
+      summary: Request password reset
+      description: |
+        🔓 **Public Endpoint**
+
+        Request a password reset code. A security code will be sent to the email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: "john@example.com"
+      responses:
+        "200":
+          description: ✅ Security code sent
+        "404":
+          description: ❌ User not found
+
+  # ==================== PRODUCTS ====================
+  /api/v1/product:
+    get:
+      tags:
+        - 📦 Products
+      summary: Get all products
+      description: |
+        🔓 **Public Endpoint** - No authentication required
+
+        Retrieve all products with optional filtering.
+
+        ### Query Parameters:
+        - **category**: Filter by category ID
+        - **brand**: Filter by brand name
+        - **featured**: Show only featured products
+      operationId: getProducts
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Category ID to filter by
+        - name: brand
+          in: query
+          schema:
+            type: string
+          description: Brand name
+        - name: featured
+          in: query
+          schema:
+            type: boolean
+          description: Show only featured products
+      responses:
+        "200":
+          description: ✅ Products retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+    post:
+      tags:
+        - 📦 Products
+      summary: Create new product
+      description: |
+        🛡️ **Required Permission:** `PRODUCT_CREATE`
+
+        Create a new product listing. Only vendors can create products.
+
+        **Accessible by:**
+        - VENDOR ✅ (own store only)
+        - SUPER_ADMIN ✅
+        - Others ❌
+      operationId: createProduct
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - description
+                - price
+                - stock
+                - categoryId
+                - subcategoryId
+              properties:
+                name:
+                  type: string
+                  example: "iPhone 15 Pro"
+                description:
+                  type: string
+                  example: "Latest flagship smartphone"
+                price:
+                  type: number
+                  example: 999.99
+                discountPrice:
+                  type: number
+                  example: 899.99
+                stock:
+                  type: integer
+                  example: 100
+                categoryId:
+                  type: string
+                subcategoryId:
+                  type: string
+                brand:
+                  type: string
+                  example: "Apple"
+                condition:
+                  type: string
+                  example: "New"
+                featured:
+                  type: boolean
+                  example: false
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Product images (max 10)
+      responses:
+        "201":
+          description: ✅ Product created successfully
+        "403":
+          description: ❌ Insufficient permissions
+
+  /api/v1/product/search:
+    get:
+      tags:
+        - 📦 Products
+      summary: Search products
+      description: |
+        🔓 **Public Endpoint**
+
+        Search products by name, description, or brand.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+          example: "iPhone"
+      responses:
+        "200":
+          description: ✅ Search results
+
+  /api/v1/product/{id}:
+    put:
+      tags:
+        - 📦 Products
+      summary: Update product
+      description: |
+        👤 **Ownership Required** + `PRODUCT_UPDATE` permission
+
+        Update product details. Vendors can only update their own products.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                stock:
+                  type: integer
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: ✅ Product updated
+        "403":
+          description: ❌ Not authorized - Not your product
+
+    delete:
+      tags:
+        - 📦 Products
+      summary: Delete product
+      description: |
+        👤 **Ownership Required** + `PRODUCT_DELETE` permission
+
+        Delete a product. Vendors can only delete their own products.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ✅ Product deleted
+        "403":
+          description: ❌ Not authorized
+
+  # ==================== CATEGORIES ====================
+  /api/v1/category:
+    get:
+      tags:
+        - 📂 Categories
+      summary: Get all categories
+      description: |
+        🔓 **Public Endpoint**
+
+        Retrieve all product categories with their subcategories.
+      responses:
+        "200":
+          description: ✅ Categories retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+    post:
+      tags:
+        - 📂 Categories
+      summary: Create category
+      description: |
+        🛡️ **Required Permission:** `PLATFORM_SETTINGS`
+
+        Create a new product category. Admin only.
+
+        **Accessible by:**
+        - SUPER_ADMIN ✅
+        - Others ❌
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                subTitle:
+                  type: string
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: ✅ Category created
+
+  /api/v1/category/{id}:
+    delete:
+      tags:
+        - 📂 Categories
+      summary: Delete category
+      description: |
+        🛡️ **Required Permission:** `PLATFORM_SETTINGS`
+
+        Delete a category. Admin only.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ✅ Category deleted
+
+  # ==================== CART ====================
+  /api/v1/cart:
+    post:
+      tags:
+        - 🛒 Cart
+      summary: Add item to cart
+      description: |
+        🔒 **Protected** - Authentication required
+
+        Add a product to your shopping cart.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: string
+                quantity:
+                  type: integer
+                  example: 1
+      responses:
+        "200":
+          description: ✅ Item added to cart
+
+    get:
+      tags:
+        - 🛒 Cart
+      summary: Get cart
+      description: |
+        🔒 **Protected** - Authentication required
+
+        Retrieve your current shopping cart.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: ✅ Cart retrieved
+
+  /api/v1/cart/{id}:
+    delete:
+      tags:
+        - 🛒 Cart
+      summary: Remove item from cart
+      description: |
+        🔒 **Protected** - Authentication required
+
+        Remove an item from your cart.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ✅ Item removed
+
+  # ==================== ORDERS ====================
+  /api/v1/order:
+    post:
+      tags:
+        - 📋 Orders
+      summary: Create order
+      description: |
+        🛡️ **Required Permission:** `ORDER_CREATE`
+
+        Create a new order from your cart. The order will be automatically
+        split by vendor for multi-vendor support.
+
+        **Process:**
+        1. Cart items grouped by vendor
+        2. Individual vendor orders created
+        3. Payment processed
+        4. Vendors notified
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cartId:
+                  type: string
+                paymentMethod:
+                  type: string
+                  enum: [card, cash, wallet]
+                shippingAddress:
+                  type: object
+      responses:
+        "201":
+          description: ✅ Order created successfully
+
+  # ==================== STORES ====================
+  /api/v1/store:
+    get:
+      tags:
+        - 🏬 Stores
+      summary: Get all stores
+      description: |
+        🔓 **Public Endpoint**
+
+        Get list of all approved vendor stores.
+      responses:
+        "200":
+          description: ✅ Stores retrieved
+
+  # ==================== WALLET ====================
+  /api/v1/wallet:
+    get:
+      tags:
+        - 💰 Wallet
+      summary: Get wallet balance
+      description: |
+        🛡️ **Required Permission:** `COMMISSION_READ`
+
+        Get vendor wallet balance and transaction history.
+
+        **Accessible by:**
+        - VENDOR ✅ (own wallet only)
+        - SUPER_ADMIN ✅
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: ✅ Wallet retrieved

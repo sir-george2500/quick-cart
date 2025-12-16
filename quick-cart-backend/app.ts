@@ -2,6 +2,8 @@ import express, { Application } from "express";
 import cors from "cors";
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
+import { setupSwagger } from "./src/config/swagger.config.js";
+import { globalLimiter } from "./src/middleware/rate-limit.js";
 
 import swaggerRoute from "./src/routes/swagger.route.js";
 import userRoute from "./src/routes/user.route.js";
@@ -18,13 +20,21 @@ import walletRoute from "./src/routes/wallet.route.js";
 import pickupstationRoute from "./src/routes/pickupstation.route.js";
 import messageRoute from "./src/routes/message.route.js";
 import paymentRoute from "./src/routes/payment.route.js";
+import vendorRoute from "./src/routes/vendor.route.js";
 
 // Initialize Express
 const app: Application = express();
 
+// Apply rate limiting
+app.use(globalLimiter);
+
 // Middleware for parsing JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Setup Swagger Documentation
+setupSwagger(app);
+
 app.use(
   cors({
     origin: [process.env.CLIENT_URL || "", process.env.ADMIN_URL || ""],
@@ -50,6 +60,7 @@ app.use("/api/v1/wallet", walletRoute);
 app.use("/api/v1/pickupstation", pickupstationRoute);
 app.use("/api/v1/message", messageRoute);
 app.use("/api/v1/payment", paymentRoute);
+app.use("/api/v1/vendor", vendorRoute);
 
 // Start the server
 const PORT: string = process.env.PORT || "3000";

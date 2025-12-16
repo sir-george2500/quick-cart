@@ -1,5 +1,4 @@
 import { Request } from "express";
-import { JwtPayload } from "jsonwebtoken";
 
 // Extend Express Request to include authenticated user
 export interface AuthenticatedRequest extends Request {
@@ -7,14 +6,27 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     role?: string;
+    roleId?: string | null;
+    permissions?: string[];
   };
   io?: any; // Socket.io instance
 }
 
 // JWT Payload types
-export interface JWTPayload extends JwtPayload {
+export interface JwtPayload {
   id: string;
-  role?: string;
+  role?: string; // User role string (CUSTOMER, VENDOR, etc.)
+  roleId?: string; // Role UUID from database
+  permissions?: string[]; // Direct permission overrides
+  iat?: number;
+  exp?: number;
+}
+
+export interface RefreshTokenPayload {
+  id: string;
+  type: "refresh";
+  iat?: number;
+  exp?: number;
 }
 
 // Auth Controller Types
@@ -60,7 +72,7 @@ export interface EmailOptions {
 }
 
 // Environment Variables
-export interface ProcessEnv {
+export interface AppProcessEnv {
   PORT: string;
   CLIENT_URL: string;
   ADMIN_URL: string;
@@ -72,6 +84,6 @@ export interface ProcessEnv {
 
 declare global {
   namespace NodeJS {
-    interface ProcessEnv extends ProcessEnv {}
+    interface ProcessEnv extends AppProcessEnv {}
   }
 }
