@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Formik } from "formik";
+import * as Yup from "yup";
 import {
   View,
   Text,
@@ -16,18 +17,32 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { Colors } from "@/constants/Colors";
 
 const { width } = Dimensions.get("window");
 
+// Validation Schema
+const RegisterSchema = Yup.object().shape({
+  name: Yup.string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name is too long")
+    .required("Name is required"),
+  email: Yup.string()
+    .email("Invalid email address")
+    .required("Email is required"),
+  password: Yup.string()
+    .min(8, "Password must be at least 8 characters")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password must contain uppercase, lowercase, and number"
+    )
+    .required("Password is required"),
+});
+
 export default function RegisterScreen() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? "light"];
@@ -36,24 +51,17 @@ export default function RegisterScreen() {
   const { register, loading } = useAuthStore();
   const router = useRouter();
 
-  const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
-      return;
-    }
-
+  const handleRegister = async (values: {
+    name: string;
+    email: string;
+    password: string;
+  }) => {
     try {
-      await register({ name, email, password });
+      // Register with CUSTOMER role by default (backend requirement)
+      await register({
+        ...values,
+        role: "CUSTOMER",
+      });
       router.replace("/(tabs)");
     } catch (err: any) {
       Alert.alert(
@@ -73,6 +81,7 @@ export default function RegisterScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Hero Section with Gradient */}
         <View style={styles.hero}>
@@ -97,146 +106,146 @@ export default function RegisterScreen() {
             <Text style={styles.subtitle}>Sign up to get started</Text>
           </View>
 
-          {/* Name Input */}
-          <View style={styles.inputWrapper}>
-            <Ionicons
-              name="person-outline"
-              size={20}
-              color={theme.textSecondary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Full name"
-              placeholderTextColor={theme.placeholder}
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              editable={!loading}
-            />
-          </View>
-
-          {/* Email Input */}
-          <View style={styles.inputWrapper}>
-            <Ionicons
-              name="mail-outline"
-              size={20}
-              color={theme.textSecondary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email address"
-              placeholderTextColor={theme.placeholder}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
-          </View>
-
-          {/* Password Input */}
-          <View style={styles.inputWrapper}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color={theme.textSecondary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Password"
-              placeholderTextColor={theme.placeholder}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              editable={!loading}
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.eyeButton}
-            >
-              <Ionicons
-                name={showPassword ? "eye-outline" : "eye-off-outline"}
-                size={20}
-                color={theme.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Confirm Password Input */}
-          <View style={styles.inputWrapper}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color={theme.textSecondary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Confirm password"
-              placeholderTextColor={theme.placeholder}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              editable={!loading}
-            />
-            <TouchableOpacity
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              style={styles.eyeButton}
-            >
-              <Ionicons
-                name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
-                size={20}
-                color={theme.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Register Button with Gradient */}
-          <TouchableOpacity
-            style={styles.buttonContainer}
-            onPress={handleRegister}
-            disabled={loading}
-            activeOpacity={0.8}
+          <Formik
+            initialValues={{ name: "", email: "", password: "" }}
+            validationSchema={RegisterSchema}
+            onSubmit={handleRegister}
           >
-            <LinearGradient
-              colors={[theme.primary, theme.primaryDark]}
-              style={styles.button}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.buttonText}>Create Account</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+            {({
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              values,
+              errors,
+              touched,
+            }) => (
+              <>
+                {/* Name Input */}
+                <View style={styles.inputContainer}>
+                  <View
+                    style={[
+                      styles.inputWrapper,
+                      touched.name && errors.name && styles.inputError,
+                    ]}
+                  >
+                    <Ionicons
+                      name="person-outline"
+                      size={20}
+                      color={theme.textSecondary}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Full name"
+                      placeholderTextColor={theme.placeholder}
+                      value={values.name}
+                      onChangeText={handleChange("name")}
+                      onBlur={handleBlur("name")}
+                      autoCapitalize="words"
+                      editable={!loading}
+                    />
+                  </View>
+                  {touched.name && errors.name && (
+                    <Text style={styles.errorText}>{errors.name}</Text>
+                  )}
+                </View>
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or sign up with</Text>
-            <View style={styles.dividerLine} />
-          </View>
+                {/* Email Input */}
+                <View style={styles.inputContainer}>
+                  <View
+                    style={[
+                      styles.inputWrapper,
+                      touched.email && errors.email && styles.inputError,
+                    ]}
+                  >
+                    <Ionicons
+                      name="mail-outline"
+                      size={20}
+                      color={theme.textSecondary}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Email address"
+                      placeholderTextColor={theme.placeholder}
+                      value={values.email}
+                      onChangeText={handleChange("email")}
+                      onBlur={handleBlur("email")}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!loading}
+                    />
+                  </View>
+                  {touched.email && errors.email && (
+                    <Text style={styles.errorText}>{errors.email}</Text>
+                  )}
+                </View>
 
-          {/* Social Login Buttons */}
-          <View style={styles.socialButtons}>
-            <TouchableOpacity style={styles.socialButton}>
-              <Ionicons name="logo-google" size={24} color={theme.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton}>
-              <Ionicons name="logo-facebook" size={24} color={theme.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton}>
-              <Ionicons name="logo-apple" size={24} color={theme.text} />
-            </TouchableOpacity>
-          </View>
+                {/* Password Input */}
+                <View style={styles.inputContainer}>
+                  <View
+                    style={[
+                      styles.inputWrapper,
+                      touched.password && errors.password && styles.inputError,
+                    ]}
+                  >
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={20}
+                      color={theme.textSecondary}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      placeholder="Password (min 8 characters)"
+                      placeholderTextColor={theme.placeholder}
+                      value={values.password}
+                      onChangeText={handleChange("password")}
+                      onBlur={handleBlur("password")}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      editable={!loading}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeButton}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-outline" : "eye-off-outline"}
+                        size={20}
+                        color={theme.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {touched.password && errors.password && (
+                    <Text style={styles.errorText}>{errors.password}</Text>
+                  )}
+                </View>
+
+                {/* Register Button */}
+                <TouchableOpacity
+                  style={styles.buttonContainer}
+                  onPress={() => handleSubmit()}
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={[theme.primary, theme.primaryDark]}
+                    style={styles.button}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.buttonText}>Create Account</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            )}
+          </Formik>
 
           {/* Login Link */}
           <View style={styles.footer}>
@@ -261,7 +270,7 @@ const createStyles = (theme: typeof Colors.light) =>
       flexGrow: 1,
     },
     hero: {
-      height: 240,
+      height: 260,
       width: "100%",
     },
     gradient: {
@@ -297,7 +306,7 @@ const createStyles = (theme: typeof Colors.light) =>
       paddingBottom: 24,
     },
     formHeader: {
-      marginBottom: 28,
+      marginBottom: 32,
     },
     title: {
       fontSize: 28,
@@ -309,15 +318,20 @@ const createStyles = (theme: typeof Colors.light) =>
       fontSize: 15,
       color: theme.textSecondary,
     },
+    inputContainer: {
+      marginBottom: 16,
+    },
     inputWrapper: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: theme.surface,
       borderRadius: 16,
-      marginBottom: 14,
       paddingHorizontal: 16,
       borderWidth: 1,
       borderColor: theme.border,
+    },
+    inputError: {
+      borderColor: theme.error,
     },
     inputIcon: {
       marginRight: 12,
@@ -330,6 +344,12 @@ const createStyles = (theme: typeof Colors.light) =>
     },
     eyeButton: {
       padding: 8,
+    },
+    errorText: {
+      color: theme.error,
+      fontSize: 12,
+      marginTop: 4,
+      marginLeft: 4,
     },
     buttonContainer: {
       borderRadius: 16,
@@ -348,42 +368,11 @@ const createStyles = (theme: typeof Colors.light) =>
       fontWeight: "700",
       letterSpacing: 0.5,
     },
-    divider: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginVertical: 20,
-    },
-    dividerLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: theme.border,
-    },
-    dividerText: {
-      marginHorizontal: 16,
-      color: theme.textSecondary,
-      fontSize: 13,
-    },
-    socialButtons: {
-      flexDirection: "row",
-      justifyContent: "center",
-      gap: 16,
-      marginBottom: 24,
-    },
-    socialButton: {
-      width: 56,
-      height: 56,
-      borderRadius: 16,
-      backgroundColor: theme.surface,
-      borderWidth: 1,
-      borderColor: theme.border,
-      justifyContent: "center",
-      alignItems: "center",
-    },
     footer: {
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
-      marginTop: 8,
+      marginTop: 16,
     },
     footerText: {
       color: theme.textSecondary,
