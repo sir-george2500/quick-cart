@@ -49,6 +49,32 @@ app.use("/api/v1/pickupstation", pickupstationRoute);
 app.use("/api/v1/message", messageRoute);
 app.use("/api/v1/payment", paymentRoute);
 app.use("/api/v1/vendor", vendorRoute);
+// 404 handler - must be after all routes
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `Route not found: ${req.method} ${req.path}`,
+    });
+});
+// Global error handler - must be last middleware
+app.use((err, req, res, _next) => {
+    console.error("Unhandled error:", {
+        message: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+    });
+    res.status(err.status || 500).json({
+        success: false,
+        message: process.env.NODE_ENV === "production"
+            ? "Internal Server Error"
+            : err.message,
+        ...(process.env.NODE_ENV === "development" && {
+            stack: err.stack,
+            details: err,
+        }),
+    });
+});
 // Export for Vercel serverless
 export default app;
 // Only start server if not in serverless environment

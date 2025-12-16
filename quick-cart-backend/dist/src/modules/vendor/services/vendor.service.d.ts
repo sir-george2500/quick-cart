@@ -12,13 +12,13 @@ export declare class VendorService {
     private prisma;
     constructor(prisma: PrismaClient);
     createVendor(data: CreateVendorDto): Promise<{
+        rating: number | null;
         id: string;
         phoneNumber: string;
         businessName: string;
         createdAt: Date;
         userId: string;
         updatedAt: Date;
-        rating: number | null;
         isVerified: boolean;
         verifiedAt: Date | null;
         totalSales: number;
@@ -26,27 +26,27 @@ export declare class VendorService {
         reviewCount: number;
     }>;
     getVendorProfile(userId: string): Promise<{
+        rating: number | null;
         id: string;
         phoneNumber: string;
         businessName: string;
         createdAt: Date;
         userId: string;
         updatedAt: Date;
-        rating: number | null;
         isVerified: boolean;
         verifiedAt: Date | null;
         totalSales: number;
         totalOrders: number;
         reviewCount: number;
-    } | null>;
+    }>;
     updateVendor(userId: string, data: UpdateVendorDto): Promise<{
+        rating: number | null;
         id: string;
         phoneNumber: string;
         businessName: string;
         createdAt: Date;
         userId: string;
         updatedAt: Date;
-        rating: number | null;
         isVerified: boolean;
         verifiedAt: Date | null;
         totalSales: number;
@@ -54,19 +54,19 @@ export declare class VendorService {
         reviewCount: number;
     }>;
     getVendorStats(userId: string): Promise<{
-        rating: number | null;
+        rating: number;
         totalSales: number;
         totalOrders: number;
         reviewCount: number;
-    } | null>;
+    }>;
     verifyVendor(vendorId: string): Promise<{
+        rating: number | null;
         id: string;
         phoneNumber: string;
         businessName: string;
         createdAt: Date;
         userId: string;
         updatedAt: Date;
-        rating: number | null;
         isVerified: boolean;
         verifiedAt: Date | null;
         totalSales: number;
