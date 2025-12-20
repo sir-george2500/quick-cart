@@ -1,12 +1,19 @@
 @import "../../styles/variables.scss";
 
-// Premium color palette
-$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-$accent-color: #667eea;
-$accent-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-$glass-bg: rgba(255, 255, 255, 0.1);
-$glass-border: rgba(255, 255, 255, 0.18);
-$error-color: #f5576c;
+// Agriculture-inspired green color palette
+$primary-gradient: linear-gradient(
+  135deg,
+  #059669 0%,
+  #10b981 50%,
+  #34d399 100%
+);
+$accent-color: #10b981;
+$accent-light: #6ee7b7;
+$accent-gradient: linear-gradient(135deg, #34d399 0%, #059669 100%);
+$bg-gradient: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+$glass-bg: rgba(255, 255, 255, 0.08);
+$glass-border: rgba(255, 255, 255, 0.15);
+$error-color: #f87171;
 $success-color: #4ade80;
 
 // Animations
@@ -64,30 +71,40 @@ $success-color: #4ade80;
   }
 }
 
+@keyframes leafFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(5deg);
+  }
+}
+
 .login-container {
   display: flex;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: $bg-gradient;
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
   position: relative;
   overflow: hidden;
 
-  // Animated background orbs
+  // Animated background orbs - green themed
   &::before,
   &::after {
     content: "";
     position: absolute;
     border-radius: 50%;
     filter: blur(80px);
-    opacity: 0.4;
+    opacity: 0.3;
     animation: pulse 8s ease-in-out infinite;
   }
 
   &::before {
     width: 500px;
     height: 500px;
-    background: $accent-gradient;
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
     top: -200px;
     right: -100px;
   }
@@ -95,7 +112,7 @@ $success-color: #4ade80;
   &::after {
     width: 400px;
     height: 400px;
-    background: $primary-gradient;
+    background: linear-gradient(135deg, #6ee7b7 0%, #059669 100%);
     bottom: -150px;
     left: -100px;
     animation-delay: 4s;
@@ -123,7 +140,7 @@ $success-color: #4ade80;
       max-width: 440px;
       box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.3),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08);
       transition:
         transform 0.3s ease,
         box-shadow 0.3s ease;
@@ -132,7 +149,7 @@ $success-color: #4ade80;
         transform: translateY(-5px);
         box-shadow:
           0 20px 60px rgba(0, 0, 0, 0.4),
-          inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+          inset 0 0 0 1px rgba(255, 255, 255, 0.12);
       }
     }
 
@@ -149,7 +166,7 @@ $success-color: #4ade80;
         align-items: center;
         justify-content: center;
         margin: 0 auto 1.5rem;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
         transform: rotate(-5deg);
         transition: transform 0.3s ease;
 
@@ -167,7 +184,7 @@ $success-color: #4ade80;
       h1 {
         font-size: 1.8rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+        background: linear-gradient(135deg, #fff 0%, #a7f3d0 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -234,7 +251,7 @@ $success-color: #4ade80;
             &:focus {
               background: rgba(255, 255, 255, 0.1);
               border-color: $accent-color;
-              box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+              box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
 
               & + .input-icon,
               & ~ .input-icon {
@@ -244,7 +261,7 @@ $success-color: #4ade80;
 
             &.error {
               border-color: $error-color;
-              box-shadow: 0 0 0 4px rgba(245, 87, 108, 0.15);
+              box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.15);
             }
           }
 
@@ -322,14 +339,14 @@ $success-color: #4ade80;
         }
 
         a {
-          color: $accent-color;
+          color: $accent-light;
           font-size: 0.9rem;
           text-decoration: none;
           font-weight: 500;
           transition: all 0.2s ease;
 
           &:hover {
-            color: #a5b4fc;
+            color: #a7f3d0;
             text-decoration: underline;
           }
         }
@@ -348,7 +365,7 @@ $success-color: #4ade80;
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
 
         &::before {
           content: "";
@@ -368,7 +385,7 @@ $success-color: #4ade80;
 
         &:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
+          box-shadow: 0 8px 30px rgba(16, 185, 129, 0.5);
 
           &::before {
             left: 100%;
@@ -415,13 +432,13 @@ $success-color: #4ade80;
       font-size: 0.95rem;
 
       a {
-        color: $accent-color;
+        color: $accent-light;
         text-decoration: none;
         font-weight: 600;
         transition: color 0.2s ease;
 
         &:hover {
-          color: #a5b4fc;
+          color: #a7f3d0;
         }
       }
     }
@@ -458,7 +475,7 @@ $success-color: #4ade80;
         .badge-dot {
           width: 8px;
           height: 8px;
-          background: $success-color;
+          background: $accent-light;
           border-radius: 50%;
           animation: pulse 2s ease-in-out infinite;
         }
@@ -469,7 +486,7 @@ $success-color: #4ade80;
         font-weight: 800;
         line-height: 1.1;
         margin-bottom: 1.5rem;
-        background: linear-gradient(135deg, #fff 0%, #c7d2fe 50%, #a5b4fc 100%);
+        background: linear-gradient(135deg, #fff 0%, #a7f3d0 50%, #6ee7b7 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -517,12 +534,13 @@ $success-color: #4ade80;
 
       .card {
         position: absolute;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 16px;
         padding: 1rem;
-        animation: float 6s ease-in-out infinite;
+        animation: leafFloat 6s ease-in-out infinite;
+        font-size: 2rem;
 
         &.card-1 {
           top: 15%;

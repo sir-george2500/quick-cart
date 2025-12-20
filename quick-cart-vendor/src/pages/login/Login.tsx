@@ -200,13 +200,13 @@ const Login: React.FC = () => {
       <div className="hero-section">
         <div className="floating-cards">
           <div className="card card-1">
-            <span>📦</span>
+            <span>🌱</span>
           </div>
           <div className="card card-2">
-            <span>💰</span>
+            <span>🌾</span>
           </div>
           <div className="card card-3">
-            <span>🚀</span>
+            <span>🍃</span>
           </div>
         </div>
 

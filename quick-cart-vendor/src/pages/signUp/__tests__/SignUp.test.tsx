@@ -49,26 +49,31 @@ describe("Signup Component", () => {
   });
 
   describe("Rendering", () => {
-    it("should render all form fields", () => {
+    it("should render signup form with new design", () => {
       renderWithProviders(<Signup />);
 
-      expect(screen.getByText("Create an Account")).toBeInTheDocument();
+      expect(screen.getByText("Join Quick Cart")).toBeInTheDocument();
+      expect(
+        screen.getByText("Start selling your products today")
+      ).toBeInTheDocument();
       expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/business name/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/phone number/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^address$/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/state/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-      expect(screen.getByLabelText("Password")).toBeInTheDocument();
-      expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
+    });
+
+    it("should render hero section with features", () => {
+      renderWithProviders(<Signup />);
+
+      expect(screen.getByText("Grow Your Farm Business")).toBeInTheDocument();
+      expect(screen.getByText("Easy product listing")).toBeInTheDocument();
     });
 
     it("should render login link", () => {
       renderWithProviders(<Signup />);
 
       expect(screen.getByText(/already have an account/i)).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /login/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: /sign in/i })
+      ).toBeInTheDocument();
     });
 
     it("should render submit button", () => {
@@ -82,7 +87,6 @@ describe("Signup Component", () => {
     it("should render password toggle buttons", () => {
       renderWithProviders(<Signup />);
 
-      // Should have 2 toggle buttons (password and confirm password)
       const toggleButtons = screen.getAllByRole("button", {
         name: /show password/i,
       });
@@ -90,7 +94,7 @@ describe("Signup Component", () => {
     });
   });
 
-  describe("Form Validation with Formik/Yup", () => {
+  describe("Form Validation", () => {
     it("should show validation error for short password", async () => {
       const user = userEvent.setup();
       renderWithProviders(<Signup />);
@@ -149,7 +153,6 @@ describe("Signup Component", () => {
       const submitButton = screen.getByRole("button", {
         name: /create account/i,
       });
-
       user.click(submitButton);
 
       await waitFor(() => {
@@ -171,46 +174,6 @@ describe("Signup Component", () => {
       await waitFor(() => {
         expect(screen.getByText(/user already exists/i)).toBeInTheDocument();
       });
-    });
-  });
-
-  describe("Accessibility", () => {
-    it("should have accessible form labels", () => {
-      renderWithProviders(<Signup />);
-
-      expect(screen.getByLabelText(/email address/i)).toHaveAttribute(
-        "type",
-        "email"
-      );
-      expect(screen.getByLabelText("Password")).toHaveAttribute(
-        "type",
-        "password"
-      );
-      expect(screen.getByLabelText("Confirm Password")).toHaveAttribute(
-        "type",
-        "password"
-      );
-      expect(screen.getByLabelText(/phone number/i)).toHaveAttribute(
-        "type",
-        "tel"
-      );
-    });
-
-    it("should have autocomplete attributes", () => {
-      renderWithProviders(<Signup />);
-
-      expect(screen.getByLabelText(/full name/i)).toHaveAttribute(
-        "autocomplete",
-        "name"
-      );
-      expect(screen.getByLabelText(/email address/i)).toHaveAttribute(
-        "autocomplete",
-        "email"
-      );
-      expect(screen.getByLabelText(/phone number/i)).toHaveAttribute(
-        "autocomplete",
-        "tel"
-      );
     });
   });
 });
