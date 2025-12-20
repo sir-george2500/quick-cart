@@ -7,7 +7,6 @@ import {
   FaEyeSlash,
   FaEnvelope,
   FaLock,
-  FaShoppingBag,
   FaExclamationCircle,
   FaArrowRight,
 } from "react-icons/fa";
@@ -80,7 +79,7 @@ const Login: React.FC = () => {
           {/* Logo Section */}
           <div className="logo-section">
             <div className="logo-icon">
-              <FaShoppingBag />
+              <img src="/logo.png" alt="Quick Cart Logo" />
             </div>
             <h1>Quick Cart Vendor</h1>
             <p className="subtitle">Sign in to your dashboard</p>

@@ -13,7 +13,6 @@ import {
   FaMapMarkerAlt,
   FaCity,
   FaGlobeAfrica,
-  FaSeedling,
   FaExclamationCircle,
   FaArrowRight,
   FaCheckCircle,
@@ -98,7 +97,7 @@ const Signup: React.FC = () => {
           {/* Logo Section */}
           <div className="logo-section">
             <div className="logo-icon">
-              <FaSeedling />
+              <img src="/logo.png" alt="Quick Cart Logo" />
             </div>
             <h1>Join Quick Cart</h1>
             <p className="subtitle">Start selling your products today</p>
