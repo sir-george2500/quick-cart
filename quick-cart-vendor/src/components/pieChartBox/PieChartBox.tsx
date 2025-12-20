@@ -4,34 +4,77 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import "./pieChartBox.scss";
 import { ordersApiRequests } from "../../api/api";
 import { useAuth } from "../../contexts/AuthContext";
+import CircularProgress from "@mui/material/CircularProgress";
+
+interface CategoryData {
+  name: string;
+  value: number;
+  color: string;
+}
+
+// Predefined color palette for consistent category colors
+const CATEGORY_COLORS = [
+  "#8884d8",
+  "#82ca9d",
+  "#ffc658",
+  "#ff8042",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#0088FE",
+  "#a4de6c",
+  "#d0ed57",
+];
 
 const PieChartBox = () => {
-  const [pieChartData, setPieChartData] = useState<any[]>([]);
+  const [pieChartData, setPieChartData] = useState<CategoryData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  
+
   useEffect(() => {
     const fetchData = async () => {
+      // Guard clause: Don't fetch if no storeId
+      if (!user?.storeId) {
+        setIsLoading(false);
+        setError("Store not configured");
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
       try {
         const ordersResponse = await ordersApiRequests.getOrders();
-        const orders = ordersResponse.data;
-  
+        const orders = ordersResponse.data as any[];
+
+        if (!orders || !Array.isArray(orders)) {
+          setPieChartData([]);
+          setIsLoading(false);
+          return;
+        }
+
         // Calculate revenue for each category related to the user's products
-        const categoryDataMap = new Map();
-  
+        const categoryDataMap = new Map<string, number>();
+
         orders.forEach((order: any) => {
-          order.products.forEach((orderProduct: any) => {
+          order.products?.forEach((orderProduct: any) => {
             // Filter products based on the user's store
             if (orderProduct.storeId === user.storeId) {
-              const categoryName = orderProduct.categoryName;
-              const productPrice = Number(orderProduct.product.discountPrice || orderProduct.product.price);
+              const categoryName = orderProduct.categoryName || "Uncategorized";
+              const productPrice = Number(
+                orderProduct.product?.discountPrice ||
+                  orderProduct.product?.price ||
+                  0
+              );
               const quantity = orderProduct.quantity || 1;
-  
+
               const revenue = productPrice * quantity;
-  
+
               if (categoryDataMap.has(categoryName)) {
                 categoryDataMap.set(
                   categoryName,
-                  categoryDataMap.get(categoryName) + revenue
+                  (categoryDataMap.get(categoryName) || 0) + revenue
                 );
               } else {
                 categoryDataMap.set(categoryName, revenue);
@@ -39,35 +82,95 @@ const PieChartBox = () => {
             }
           });
         });
-  
+
         // Convert map to array for PieChart data format
-        const pieChartData = Array.from(categoryDataMap.entries()).map(
-          ([name, value]) => ({
+        const chartData = Array.from(categoryDataMap.entries()).map(
+          ([name, value], index) => ({
             name,
             value,
-            color: getRandomColor(), // Replace with your color logic if needed
+            color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
           })
         );
-  
-        setPieChartData(pieChartData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
+
+        setPieChartData(chartData);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load category data");
+      } finally {
+        setIsLoading(false);
       }
     };
-  
-    fetchData();
-  }, [user.storeId]);
-  
 
-  // Function to generate random color (if needed)
-  const getRandomColor = () => {
-    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-  };
+    fetchData();
+  }, [user?.storeId]);
 
   // Function to format value as currency
   const formatCurrency = (value: number) => {
     return `$${value.toFixed(2)}`;
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="pieChartBox">
+        <h1>Revenue by Product Category</h1>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "300px",
+          }}
+        >
+          <CircularProgress size={32} />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="pieChartBox">
+        <h1>Revenue by Product Category</h1>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "300px",
+            color: "#888",
+          }}
+        >
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (pieChartData.length === 0) {
+    return (
+      <div className="pieChartBox">
+        <h1>Revenue by Product Category</h1>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "300px",
+            color: "#888",
+          }}
+        >
+          <p>No category data yet</p>
+          <p style={{ fontSize: "12px" }}>
+            Revenue by category will appear when orders are placed
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pieChartBox">

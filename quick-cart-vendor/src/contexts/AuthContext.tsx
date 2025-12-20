@@ -1,64 +1,171 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+  useEffect,
+} from "react";
+import { User, AuthContextType } from "../types";
+import { authService } from "../services/auth.service";
 
-interface AuthContextType {
-  isAuthenticated: boolean;
-  user: any;
-  login: (user: any) => void;
-  logout: () => void;
-  updateUser: (userData: any) => void;
-  setUserAvatar: (avatarUrl: string) => void;
-}
+// Storage keys
+const STORAGE_KEYS = {
+  IS_AUTHENTICATED: "isAuthenticated",
+  USER: "user",
+} as const;
 
+/**
+ * Auth Context with undefined default
+ */
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    const storedAuth = localStorage.getItem('isAuthenticated');
-    return storedAuth ? JSON.parse(storedAuth) : false;
-  });
+/**
+ * Props for AuthProvider component
+ */
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
-  const [user, setUser] = useState<any>(() => {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
-  });
+/**
+ * Get initial auth state from localStorage
+ */
+const getInitialAuthState = (): boolean => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.IS_AUTHENTICATED);
+    return stored ? JSON.parse(stored) : false;
+  } catch {
+    return false;
+  }
+};
 
-  const login = (user: any) => {
+/**
+ * Get initial user from localStorage
+ */
+const getInitialUser = (): User | null => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.USER);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Authentication Provider Component
+ *
+ * Manages authentication state and provides auth methods to the app.
+ * Persists auth state to localStorage for session persistence.
+ */
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] =
+    useState<boolean>(getInitialAuthState);
+  const [user, setUser] = useState<User | null>(getInitialUser);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  /**
+   * Validate stored auth state on mount
+   * Clears invalid state if user data is corrupted
+   */
+  useEffect(() => {
+    const storedUser = getInitialUser();
+    const storedAuth = getInitialAuthState();
+
+    // If authenticated but no user, clear state
+    if (storedAuth && !storedUser) {
+      setIsAuthenticated(false);
+      localStorage.removeItem(STORAGE_KEYS.IS_AUTHENTICATED);
+      localStorage.removeItem(STORAGE_KEYS.USER);
+    }
+  }, []);
+
+  /**
+   * Login user and persist to localStorage
+   */
+  const login = useCallback((userData: User) => {
     setIsAuthenticated(true);
-    setUser(user);
-    localStorage.setItem('isAuthenticated', JSON.stringify(true));
-    localStorage.setItem('user', JSON.stringify(user));
-  };
+    setUser(userData);
+    localStorage.setItem(STORAGE_KEYS.IS_AUTHENTICATED, JSON.stringify(true));
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+  }, []);
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('user');
-  };
+  /**
+   * Logout user - calls API and clears local state
+   */
+  const logout = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Call logout API to invalidate server-side tokens
+      await authService.logout();
+    } catch (error) {
+      // Log error but still clear local state
+      console.error("Logout API error:", error);
+    } finally {
+      // Always clear local state, even if API call fails
+      setIsAuthenticated(false);
+      setUser(null);
+      localStorage.removeItem(STORAGE_KEYS.IS_AUTHENTICATED);
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      setIsLoading(false);
+    }
+  }, []);
 
-  const updateUser = (userData: any) => {
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-  };
+  /**
+   * Update user data (partial update)
+   */
+  const updateUser = useCallback((userData: Partial<User>) => {
+    setUser((prevUser) => {
+      if (!prevUser) return null;
 
-  const setUserAvatar = (avatarUrl: string) => {
-    const updatedUser = { ...user, avatar: avatarUrl };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+      const updatedUser = { ...prevUser, ...userData };
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  }, []);
+
+  /**
+   * Update user avatar specifically
+   */
+  const setUserAvatar = useCallback(
+    (avatarUrl: string) => {
+      updateUser({ avatar: avatarUrl });
+    },
+    [updateUser]
+  );
+
+  // Context value with memoization for performance
+  const contextValue: AuthContextType = {
+    isAuthenticated,
+    user,
+    isLoading,
+    login,
+    logout,
+    updateUser,
+    setUserAvatar,
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, updateUser, setUserAvatar }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 
+/**
+ * Hook to access auth context
+ *
+ * @throws Error if used outside AuthProvider
+ * @returns AuthContextType with auth state and methods
+ */
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
+
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
+
   return context;
 };
+
+/**
+ * Export context for testing purposes
+ */
+export { AuthContext };
