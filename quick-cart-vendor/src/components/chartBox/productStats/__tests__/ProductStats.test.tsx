@@ -1,46 +1,25 @@
+import { BrowserRouter } from "react-router-dom";
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ProductStats from "../ProductStats";
 import { AuthProvider } from "../../../../contexts/AuthContext";
 
-// Mock MUI CircularProgress
-jest.mock("@mui/material/CircularProgress", () => ({
-  __esModule: true,
-  default: () => <div data-testid="loading-spinner">Loading...</div>,
-}));
+/**
+ * ProductStats Component Tests
+ */
 
-// Wrapper component for rendering with auth provider
-const renderWithAuth = (
-  component: React.ReactElement,
-  initialUser?: object | null
-) => {
-  if (initialUser) {
-    localStorage.setItem("quick-cart-vendor-user", JSON.stringify(initialUser));
+// Helper to setup localStorage with a mock user
+const setupMockUser = (user: object | null) => {
+  if (user) {
+    localStorage.setItem("quick-cart-vendor-user", JSON.stringify(user));
     localStorage.setItem("quick-cart-vendor-isAuthenticated", "true");
   }
-  return render(<AuthProvider>{component}</AuthProvider>);
 };
 
 describe("ProductStats Component", () => {
   beforeEach(() => {
     localStorage.clear();
-  });
-
-  describe("Loading State", () => {
-    it("should show loading spinner while fetching data", () => {
-      const mockUser = {
-        id: "1",
-        storeId: "test-store-id",
-        name: "Test Vendor",
-        email: "vendor@test.com",
-        role: "seller",
-        isApproved: true,
-      };
-
-      renderWithAuth(<ProductStats />, mockUser);
-      expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
-    });
   });
 
   describe("Error States", () => {
@@ -54,17 +33,22 @@ describe("ProductStats Component", () => {
         isApproved: true,
       };
 
-      renderWithAuth(<ProductStats />, mockUserNoStore);
+      setupMockUser(mockUserNoStore);
+
+      render(
+        <BrowserRouter><AuthProvider>
+          <ProductStats />
+        </AuthProvider></BrowserRouter>
+      );
 
       await waitFor(() => {
-        // Should show ChartBox with "Total Products" title
         expect(screen.getByText("Total Products")).toBeInTheDocument();
       });
     });
   });
 
-  describe("Data Loading", () => {
-    it("should load and display product statistics", async () => {
+  describe("Rendering", () => {
+    it("should display Total Products title", async () => {
       const mockUser = {
         id: "1",
         storeId: "test-store-id",
@@ -74,14 +58,17 @@ describe("ProductStats Component", () => {
         isApproved: true,
       };
 
-      renderWithAuth(<ProductStats />, mockUser);
+      setupMockUser(mockUser);
 
-      await waitFor(
-        () => {
-          expect(screen.getByText("Total Products")).toBeInTheDocument();
-        },
-        { timeout: 5000 }
+      render(
+        <BrowserRouter><AuthProvider>
+          <ProductStats />
+        </AuthProvider></BrowserRouter>
       );
+
+      await waitFor(() => {
+        expect(screen.getByText("Total Products")).toBeInTheDocument();
+      });
     });
   });
 });

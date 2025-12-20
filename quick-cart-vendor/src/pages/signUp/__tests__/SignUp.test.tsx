@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import Signup from "../SignUp";
 import { AuthProvider } from "../../../contexts/AuthContext";
+import { authService } from "../../../services/auth.service";
 
 // Mock react-router-dom's useNavigate
 const mockNavigate = jest.fn();
@@ -12,6 +13,10 @@ jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
   useNavigate: () => mockNavigate,
 }));
+
+// Mock auth service
+jest.mock("../../../services/auth.service");
+const mockAuthService = authService as jest.Mocked<typeof authService>;
 
 // Wrapper component for rendering with providers
 const renderWithProviders = (component: React.ReactElement) => {
@@ -45,6 +50,10 @@ describe("Signup Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    // Default mock implementation - successful registration
+    mockAuthService.registerVendor.mockResolvedValue(
+      "Seller account created successfully, pending approval."
+    );
   });
 
   describe("Rendering", () => {
@@ -152,6 +161,12 @@ describe("Signup Component", () => {
     });
 
     it("should show loading state during registration", async () => {
+      // Make registration take longer so we can check loading state
+      mockAuthService.registerVendor.mockImplementation(
+        () =>
+          new Promise((resolve) => setTimeout(() => resolve("Success"), 100))
+      );
+
       const user = userEvent.setup();
       renderWithProviders(<Signup />);
 
@@ -160,12 +175,20 @@ describe("Signup Component", () => {
       const submitButton = screen.getByRole("button", {
         name: /create account/i,
       });
-      await user.click(submitButton);
 
-      expect(submitButton).toBeDisabled();
+      // Click and immediately check - should be loading
+      user.click(submitButton);
+
+      await waitFor(() => {
+        expect(submitButton).toBeDisabled();
+      });
     });
 
     it("should show error when user already exists", async () => {
+      mockAuthService.registerVendor.mockRejectedValue(
+        new Error("User already exists")
+      );
+
       const user = userEvent.setup();
       renderWithProviders(<Signup />);
 

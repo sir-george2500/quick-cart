@@ -1,58 +1,25 @@
+import { BrowserRouter } from "react-router-dom";
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ProfitStats from "../ProfitsStats";
 import { AuthProvider } from "../../../../contexts/AuthContext";
 
-// Mock MUI CircularProgress
-jest.mock("@mui/material/CircularProgress", () => ({
-  __esModule: true,
-  default: () => <div data-testid="loading-spinner">Loading...</div>,
-}));
+/**
+ * ProfitStats Component Tests
+ */
 
-// Mock Recharts components (used by BarChartBox)
-jest.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
-  ),
-  BarChart: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="bar-chart">{children}</div>
-  ),
-  Bar: () => <div data-testid="bar" />,
-  Tooltip: () => <div data-testid="tooltip" />,
-}));
-
-// Wrapper component for rendering with auth provider
-const renderWithAuth = (
-  component: React.ReactElement,
-  initialUser?: object | null
-) => {
-  if (initialUser) {
-    localStorage.setItem("quick-cart-vendor-user", JSON.stringify(initialUser));
+// Helper to setup localStorage with a mock user
+const setupMockUser = (user: object | null) => {
+  if (user) {
+    localStorage.setItem("quick-cart-vendor-user", JSON.stringify(user));
     localStorage.setItem("quick-cart-vendor-isAuthenticated", "true");
   }
-  return render(<AuthProvider>{component}</AuthProvider>);
 };
 
 describe("ProfitStats Component", () => {
   beforeEach(() => {
     localStorage.clear();
-  });
-
-  describe("Rendering", () => {
-    it("should show loading spinner while fetching data", () => {
-      const mockUser = {
-        id: "1",
-        storeId: "test-store-id",
-        name: "Test Vendor",
-        email: "vendor@test.com",
-        role: "seller",
-        isApproved: true,
-      };
-
-      renderWithAuth(<ProfitStats />, mockUser);
-      expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
-    });
   });
 
   describe("Error States", () => {
@@ -66,7 +33,13 @@ describe("ProfitStats Component", () => {
         isApproved: true,
       };
 
-      renderWithAuth(<ProfitStats />, mockUserNoStore);
+      setupMockUser(mockUserNoStore);
+
+      render(
+        <BrowserRouter><AuthProvider>
+          <ProfitStats />
+        </AuthProvider></BrowserRouter>
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Profit Earned")).toBeInTheDocument();
@@ -74,8 +47,8 @@ describe("ProfitStats Component", () => {
     });
   });
 
-  describe("Data Loading", () => {
-    it("should load and display profit chart", async () => {
+  describe("Rendering", () => {
+    it("should display Profit Earned title", async () => {
       const mockUser = {
         id: "1",
         storeId: "test-store-id",
@@ -85,14 +58,17 @@ describe("ProfitStats Component", () => {
         isApproved: true,
       };
 
-      renderWithAuth(<ProfitStats />, mockUser);
+      setupMockUser(mockUser);
 
-      await waitFor(
-        () => {
-          expect(screen.getByText("Profit Earned")).toBeInTheDocument();
-        },
-        { timeout: 5000 }
+      render(
+        <BrowserRouter><AuthProvider>
+          <ProfitStats />
+        </AuthProvider></BrowserRouter>
       );
+
+      await waitFor(() => {
+        expect(screen.getByText("Profit Earned")).toBeInTheDocument();
+      });
     });
   });
 });

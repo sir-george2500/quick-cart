@@ -1,21 +1,14 @@
 /** @type {import('jest').Config} */
-export default {
+module.exports = {
   // Use jsdom for DOM testing
   testEnvironment: "jsdom",
 
   // Setup files to run after jest is loaded
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
 
-  // Transform TypeScript files
+  // Transform TypeScript and JSX files with babel
   transform: {
-    "^.+\\.(ts|tsx)$": [
-      "ts-jest",
-      {
-        useESM: true,
-        // Use the app's tsconfig which includes vite-env.d.ts
-        tsconfig: "<rootDir>/tsconfig.app.json",
-      },
-    ],
+    "^.+\\.(ts|tsx|js|jsx)$": "babel-jest",
   },
 
   // Module file extensions
@@ -27,6 +20,13 @@ export default {
     "\\.(css|scss|sass)$": "identity-obj-proxy",
     // Handle image imports
     "\\.(jpg|jpeg|png|gif|webp|svg)$": "<rootDir>/src/__mocks__/fileMock.ts",
+    // Handle MSW node import
+    "^msw/node$": "<rootDir>/node_modules/msw/lib/node/index.js",
+  },
+
+  // Test environment options for MSW
+  testEnvironmentOptions: {
+    customExportConditions: [""],
   },
 
   // Test patterns
@@ -34,6 +34,11 @@ export default {
 
   // Ignore patterns
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+
+  // Transform ESM packages from node_modules
+  transformIgnorePatterns: [
+    "/node_modules/(?!(@mui|@emotion|recharts|d3-.*|internmap|msw|@bundled-es-modules|@mswjs)/)",
+  ],
 
   // Coverage configuration
   collectCoverageFrom: [
@@ -48,10 +53,4 @@ export default {
 
   // Clear mocks between tests
   clearMocks: true,
-
-  // ESM support
-  extensionsToTreatAsEsm: [".ts", ".tsx"],
-
-  // Inject jest globals for ESM compatibility
-  injectGlobals: true,
 };

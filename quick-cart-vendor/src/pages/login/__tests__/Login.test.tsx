@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import Login from "../Login";
 import { AuthProvider } from "../../../contexts/AuthContext";
+import { authService } from "../../../services/auth.service";
 
 // Mock react-router-dom's useNavigate
 const mockNavigate = jest.fn();
@@ -12,6 +13,10 @@ jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
   useNavigate: () => mockNavigate,
 }));
+
+// Mock auth service
+jest.mock("../../../services/auth.service");
+const mockAuthService = authService as jest.Mocked<typeof authService>;
 
 // Wrapper component for rendering with providers
 const renderWithProviders = (component: React.ReactElement) => {
@@ -25,10 +30,36 @@ const renderWithProviders = (component: React.ReactElement) => {
   );
 };
 
+// Mock user data
+const mockUser = {
+  id: "test-user-id",
+  name: "Test Vendor",
+  email: "vendor@test.com",
+  role: "seller",
+  isApproved: true,
+  storeId: "test-store-id",
+};
+
+const mockUnapprovedUser = {
+  ...mockUser,
+  email: "unapproved@test.com",
+  isApproved: false,
+};
+
+const mockCustomerUser = {
+  ...mockUser,
+  email: "customer@test.com",
+  role: "customer",
+};
+
 describe("Login Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    // Default mock implementation
+    mockAuthService.login.mockResolvedValue(mockUser);
+    mockAuthService.isApproved.mockReturnValue(true);
+    mockAuthService.isVendor.mockReturnValue(true);
   });
 
   describe("Rendering", () => {
@@ -108,6 +139,11 @@ describe("Login Component", () => {
     });
 
     it("should show loading state during login", async () => {
+      // Make login take longer so we can check loading state
+      mockAuthService.login.mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve(mockUser), 100))
+      );
+
       const user = userEvent.setup();
       renderWithProviders(<Login />);
 
@@ -120,13 +156,20 @@ describe("Login Component", () => {
       const submitButton = screen.getByRole("button", {
         name: /login to your account/i,
       });
-      await user.click(submitButton);
 
-      // Button should show loading state initially
-      expect(submitButton).toBeDisabled();
+      // Click and immediately check - should be loading
+      user.click(submitButton);
+
+      await waitFor(() => {
+        expect(submitButton).toBeDisabled();
+      });
     });
 
     it("should show error for invalid credentials", async () => {
+      mockAuthService.login.mockRejectedValue(
+        new Error("Invalid Credentials!")
+      );
+
       const user = userEvent.setup();
       renderWithProviders(<Login />);
 
@@ -145,6 +188,9 @@ describe("Login Component", () => {
     });
 
     it("should show error for unapproved account", async () => {
+      mockAuthService.login.mockResolvedValue(mockUnapprovedUser);
+      mockAuthService.isApproved.mockReturnValue(false);
+
       const user = userEvent.setup();
       renderWithProviders(<Login />);
 
@@ -163,6 +209,10 @@ describe("Login Component", () => {
     });
 
     it("should show error for non-seller role", async () => {
+      mockAuthService.login.mockResolvedValue(mockCustomerUser);
+      mockAuthService.isApproved.mockReturnValue(true);
+      mockAuthService.isVendor.mockReturnValue(false);
+
       const user = userEvent.setup();
       renderWithProviders(<Login />);
 

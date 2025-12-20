@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { jest } from "@jest/globals";
 
-// Make jest available globally for ESM
-(globalThis as unknown as { jest: typeof jest }).jest = jest;
+// Mock ResizeObserver for Recharts ResponsiveContainer
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+// Mock TextEncoder/TextDecoder for any modules that need them
+global.TextEncoder = require("util").TextEncoder;
+global.TextDecoder = require("util").TextDecoder;
