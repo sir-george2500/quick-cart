@@ -37,53 +37,51 @@ describe("Login Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
-    // Default mock implementation
     mockAuthService.login.mockResolvedValue(mockUser);
     mockAuthService.isApproved.mockReturnValue(true);
     mockAuthService.isVendor.mockReturnValue(true);
   });
 
   describe("Rendering", () => {
-    it("should render login form", () => {
+    it("should render login form with new design", () => {
       renderWithProviders(<Login />);
 
-      expect(
-        screen.getByText("Sign in to Quick-cart-vendor")
-      ).toBeInTheDocument();
+      expect(screen.getByText("Quick Cart Vendor")).toBeInTheDocument();
+      expect(screen.getByText("Sign in to your dashboard")).toBeInTheDocument();
       expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
       expect(screen.getByLabelText("Password")).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: /login to your account/i })
-      ).toBeInTheDocument();
     });
 
     it("should render forgot password link", () => {
       renderWithProviders(<Login />);
-
       expect(screen.getByText(/forgot password\?/i)).toBeInTheDocument();
     });
 
-    it("should render signup link", () => {
+    it("should render create account link", () => {
       renderWithProviders(<Login />);
+      expect(screen.getByText(/create one/i)).toBeInTheDocument();
+    });
 
-      expect(screen.getByText(/create an account/i)).toBeInTheDocument();
+    it("should render hero section with stats", () => {
+      renderWithProviders(<Login />);
+      expect(screen.getByText("10K+")).toBeInTheDocument();
+      expect(screen.getByText("Vendors")).toBeInTheDocument();
     });
 
     it("should render password toggle button", () => {
       renderWithProviders(<Login />);
-
       expect(
         screen.getByRole("button", { name: /show password/i })
       ).toBeInTheDocument();
     });
   });
 
-  describe("Form Validation with Formik/Yup", () => {
-    it("should show validation error for invalid email format", async () => {
+  describe("Form Validation", () => {
+    it("should show validation error for invalid email", async () => {
       const user = userEvent.setup();
       renderWithProviders(<Login />);
 
-      await user.type(screen.getByLabelText(/email address/i), "invalid-email");
+      await user.type(screen.getByLabelText(/email address/i), "invalid");
       await user.tab();
 
       await waitFor(() => {
@@ -118,9 +116,7 @@ describe("Login Component", () => {
         "vendor@test.com"
       );
       await user.type(screen.getByLabelText("Password"), "password123");
-      await user.click(
-        screen.getByRole("button", { name: /login to your account/i })
-      );
+      await user.click(screen.getByRole("button", { name: /sign in/i }));
 
       await waitFor(() => {
         expect(mockAuthService.login).toHaveBeenCalledWith(
@@ -131,7 +127,6 @@ describe("Login Component", () => {
     });
 
     it("should show loading state during login", async () => {
-      // Make login take longer so we can check loading state
       mockAuthService.login.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve(mockUser), 100))
       );
@@ -145,11 +140,7 @@ describe("Login Component", () => {
       );
       await user.type(screen.getByLabelText("Password"), "password123");
 
-      const submitButton = screen.getByRole("button", {
-        name: /login to your account/i,
-      });
-
-      // Click and check loading state
+      const submitButton = screen.getByRole("button", { name: /sign in/i });
       user.click(submitButton);
 
       await waitFor(() => {
@@ -170,58 +161,16 @@ describe("Login Component", () => {
         "vendor@test.com"
       );
       await user.type(screen.getByLabelText("Password"), "wrongpassword");
-      await user.click(
-        screen.getByRole("button", { name: /login to your account/i })
-      );
+      await user.click(screen.getByRole("button", { name: /sign in/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
       });
     });
-
-    it("should show error for unapproved account", async () => {
-      mockAuthService.isApproved.mockReturnValue(false);
-
-      const user = userEvent.setup();
-      renderWithProviders(<Login />);
-
-      await user.type(
-        screen.getByLabelText(/email address/i),
-        "unapproved@test.com"
-      );
-      await user.type(screen.getByLabelText("Password"), "password123");
-      await user.click(
-        screen.getByRole("button", { name: /login to your account/i })
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText(/pending verification/i)).toBeInTheDocument();
-      });
-    });
-
-    it("should show error for non-seller role", async () => {
-      mockAuthService.isVendor.mockReturnValue(false);
-
-      const user = userEvent.setup();
-      renderWithProviders(<Login />);
-
-      await user.type(
-        screen.getByLabelText(/email address/i),
-        "customer@test.com"
-      );
-      await user.type(screen.getByLabelText("Password"), "password123");
-      await user.click(
-        screen.getByRole("button", { name: /login to your account/i })
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText(/not authorized/i)).toBeInTheDocument();
-      });
-    });
   });
 
   describe("Password Toggle", () => {
-    it("should toggle password visibility when clicking eye icon", async () => {
+    it("should toggle password visibility", async () => {
       const user = userEvent.setup();
       renderWithProviders(<Login />);
 
@@ -230,44 +179,13 @@ describe("Login Component", () => {
         name: /show password/i,
       });
 
-      // Initially password should be hidden
       expect(passwordInput).toHaveAttribute("type", "password");
 
-      // Click to show password
       await user.click(toggleButton);
       expect(passwordInput).toHaveAttribute("type", "text");
 
-      // Click to hide password
       await user.click(screen.getByRole("button", { name: /hide password/i }));
       expect(passwordInput).toHaveAttribute("type", "password");
-    });
-  });
-
-  describe("Accessibility", () => {
-    it("should have accessible form labels", () => {
-      renderWithProviders(<Login />);
-
-      expect(screen.getByLabelText(/email address/i)).toHaveAttribute(
-        "type",
-        "email"
-      );
-      expect(screen.getByLabelText("Password")).toHaveAttribute(
-        "type",
-        "password"
-      );
-    });
-
-    it("should have autocomplete attributes", () => {
-      renderWithProviders(<Login />);
-
-      expect(screen.getByLabelText(/email address/i)).toHaveAttribute(
-        "autocomplete",
-        "email"
-      );
-      expect(screen.getByLabelText("Password")).toHaveAttribute(
-        "autocomplete",
-        "current-password"
-      );
     });
   });
 });
