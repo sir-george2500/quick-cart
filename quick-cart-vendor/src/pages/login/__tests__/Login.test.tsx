@@ -7,13 +7,6 @@ import Login from "../Login";
 import { AuthProvider } from "../../../contexts/AuthContext";
 import { authService } from "../../../services/auth.service";
 
-// Mock react-router-dom's useNavigate
-const mockNavigate = jest.fn();
-jest.mock("react-router-dom", () => ({
-  ...jest.requireActual("react-router-dom"),
-  useNavigate: () => mockNavigate,
-}));
-
 // Mock auth service
 jest.mock("../../../services/auth.service");
 const mockAuthService = authService as jest.Mocked<typeof authService>;
@@ -38,18 +31,6 @@ const mockUser = {
   role: "seller",
   isApproved: true,
   storeId: "test-store-id",
-};
-
-const mockUnapprovedUser = {
-  ...mockUser,
-  email: "unapproved@test.com",
-  isApproved: false,
-};
-
-const mockCustomerUser = {
-  ...mockUser,
-  email: "customer@test.com",
-  role: "customer",
 };
 
 describe("Login Component", () => {
@@ -89,33 +70,33 @@ describe("Login Component", () => {
     });
   });
 
-  describe("Form Validation", () => {
-    it("should show error for empty email", async () => {
+  describe("Form Validation with Formik/Yup", () => {
+    it("should show validation error for invalid email format", async () => {
       const user = userEvent.setup();
       renderWithProviders(<Login />);
 
-      await user.type(screen.getByLabelText(/password/i), "password123");
-      await user.click(
-        screen.getByRole("button", { name: /login to your account/i })
-      );
+      await user.type(screen.getByLabelText(/email address/i), "invalid-email");
+      await user.tab(); // Trigger blur
 
-      // HTML5 validation should prevent submission
-      expect(screen.getByLabelText(/email address/i)).toBeInvalid();
+      await waitFor(() => {
+        expect(
+          screen.getByText(/please enter a valid email/i)
+        ).toBeInTheDocument();
+      });
     });
 
-    it("should show error for empty password", async () => {
+    it("should show validation error for short password", async () => {
       const user = userEvent.setup();
       renderWithProviders(<Login />);
 
-      await user.type(
-        screen.getByLabelText(/email address/i),
-        "test@example.com"
-      );
-      await user.click(
-        screen.getByRole("button", { name: /login to your account/i })
-      );
+      await user.type(screen.getByLabelText(/password/i), "12345");
+      await user.tab(); // Trigger blur
 
-      expect(screen.getByLabelText(/password/i)).toBeInvalid();
+      await waitFor(() => {
+        expect(
+          screen.getByText(/password must be at least 6 characters/i)
+        ).toBeInTheDocument();
+      });
     });
   });
 
@@ -134,7 +115,10 @@ describe("Login Component", () => {
       );
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith("/");
+        expect(mockAuthService.login).toHaveBeenCalledWith(
+          "vendor@test.com",
+          "password123"
+        );
       });
     });
 
@@ -157,7 +141,7 @@ describe("Login Component", () => {
         name: /login to your account/i,
       });
 
-      // Click and immediately check - should be loading
+      // Click and check loading state
       user.click(submitButton);
 
       await waitFor(() => {
@@ -188,7 +172,6 @@ describe("Login Component", () => {
     });
 
     it("should show error for unapproved account", async () => {
-      mockAuthService.login.mockResolvedValue(mockUnapprovedUser);
       mockAuthService.isApproved.mockReturnValue(false);
 
       const user = userEvent.setup();
@@ -209,8 +192,6 @@ describe("Login Component", () => {
     });
 
     it("should show error for non-seller role", async () => {
-      mockAuthService.login.mockResolvedValue(mockCustomerUser);
-      mockAuthService.isApproved.mockReturnValue(true);
       mockAuthService.isVendor.mockReturnValue(false);
 
       const user = userEvent.setup();

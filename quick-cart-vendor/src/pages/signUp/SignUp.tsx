@@ -1,164 +1,78 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useFormik } from "formik";
 import "./signup.scss";
 import { authService } from "../../services/auth.service";
 import { VendorRegistrationRequest } from "../../types";
-
-/**
- * Form data interface for type safety
- */
-interface SignupFormData {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  businessName: string;
-  phoneNumber: string;
-  address: string;
-  city: string;
-  state: string;
-}
-
-/**
- * Initial form state
- */
-const initialFormData: SignupFormData = {
-  name: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
-  businessName: "",
-  phoneNumber: "",
-  address: "",
-  city: "",
-  state: "",
-};
+import { signupSchema, SignupFormValues } from "../../utils/validationSchemas";
 
 /**
  * Signup Component
  *
  * Handles vendor registration with comprehensive form validation.
- * Registered vendors require admin approval before they can log in.
+ * Uses Formik for form state management and Yup for validation.
  */
 const Signup: React.FC = () => {
-  // Form state
-  const [formData, setFormData] = useState<SignupFormData>(initialFormData);
-  const [loading, setLoading] = useState(false);
-
   // Hooks
   const navigate = useNavigate();
 
   /**
-   * Handle input changes
+   * Formik form configuration
    */
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
-  };
+  const formik = useFormik<SignupFormValues>({
+    initialValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      businessName: "",
+      phoneNumber: "",
+      address: "",
+      city: "",
+      state: "",
+    },
+    validationSchema: signupSchema,
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        // Prepare registration data (exclude confirmPassword)
+        const registrationData: VendorRegistrationRequest = {
+          name: values.name,
+          email: values.email,
+          password: values.password,
+          businessName: values.businessName,
+          phoneNumber: values.phoneNumber,
+          address: values.address,
+          city: values.city,
+          state: values.state,
+        };
+
+        // Register vendor via auth service
+        const message = await authService.registerVendor(registrationData);
+
+        toast.success(
+          message || "Seller account created successfully, pending approval."
+        );
+
+        // Navigate to login page
+        navigate("/login");
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Signup failed! Please try again.";
+        toast.error(errorMessage);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+  });
 
   /**
-   * Validate form data
+   * Helper to get input class with error state
    */
-  const validateForm = (): string | null => {
-    const {
-      name,
-      email,
-      password,
-      confirmPassword,
-      businessName,
-      phoneNumber,
-      address,
-      city,
-      state,
-    } = formData;
-
-    // Check required fields
-    if (
-      !name ||
-      !email ||
-      !password ||
-      !confirmPassword ||
-      !businessName ||
-      !phoneNumber ||
-      !address ||
-      !city ||
-      !state
-    ) {
-      return "All fields are required!";
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return "Please enter a valid email address";
-    }
-
-    // Validate password length
-    if (password.length < 6) {
-      return "Password must be at least 6 characters long!";
-    }
-
-    // Check password match
-    if (password !== confirmPassword) {
-      return "Passwords do not match!";
-    }
-
-    // Validate phone number (basic check)
-    const phoneRegex = /^[+]?[\d\s-]{8,}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-      return "Please enter a valid phone number";
-    }
-
-    return null;
-  };
-
-  /**
-   * Handle form submission
-   */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate form
-    const validationError = validateForm();
-    if (validationError) {
-      toast.error(validationError);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // Prepare registration data (exclude confirmPassword)
-      const registrationData: VendorRegistrationRequest = {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        businessName: formData.businessName,
-        phoneNumber: formData.phoneNumber,
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-      };
-
-      // Register vendor via auth service
-      const message = await authService.registerVendor(registrationData);
-
-      toast.success(
-        message || "Seller account created successfully, pending approval."
-      );
-
-      // Navigate to login page
-      navigate("/login");
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Signup failed! Please try again.";
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+  const getInputClass = (field: keyof SignupFormValues) => {
+    return formik.touched[field] && formik.errors[field] ? "error" : "";
   };
 
   return (
@@ -167,33 +81,45 @@ const Signup: React.FC = () => {
         <h2>Create an Account</h2>
         <p>Sell With Ease</p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={formik.handleSubmit}>
           <div className="input-row">
             <div className="input-group">
               <label htmlFor="name">Full Name</label>
               <input
                 type="text"
                 id="name"
-                value={formData.name}
-                onChange={handleInputChange}
+                name="name"
+                value={formik.values.name}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Enter your full name"
-                required
-                disabled={loading}
+                disabled={formik.isSubmitting}
                 autoComplete="name"
+                className={getInputClass("name")}
               />
+              {formik.touched.name && formik.errors.name && (
+                <span className="error-message">{formik.errors.name}</span>
+              )}
             </div>
             <div className="input-group">
               <label htmlFor="businessName">Business Name</label>
               <input
                 type="text"
                 id="businessName"
-                value={formData.businessName}
-                onChange={handleInputChange}
+                name="businessName"
+                value={formik.values.businessName}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Enter your business name"
-                required
-                disabled={loading}
+                disabled={formik.isSubmitting}
                 autoComplete="organization"
+                className={getInputClass("businessName")}
               />
+              {formik.touched.businessName && formik.errors.businessName && (
+                <span className="error-message">
+                  {formik.errors.businessName}
+                </span>
+              )}
             </div>
           </div>
 
@@ -203,26 +129,38 @@ const Signup: React.FC = () => {
               <input
                 type="tel"
                 id="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
+                name="phoneNumber"
+                value={formik.values.phoneNumber}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Enter your phone number"
-                required
-                disabled={loading}
+                disabled={formik.isSubmitting}
                 autoComplete="tel"
+                className={getInputClass("phoneNumber")}
               />
+              {formik.touched.phoneNumber && formik.errors.phoneNumber && (
+                <span className="error-message">
+                  {formik.errors.phoneNumber}
+                </span>
+              )}
             </div>
             <div className="input-group">
               <label htmlFor="address">Address</label>
               <input
                 type="text"
                 id="address"
-                value={formData.address}
-                onChange={handleInputChange}
+                name="address"
+                value={formik.values.address}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Enter your address"
-                required
-                disabled={loading}
+                disabled={formik.isSubmitting}
                 autoComplete="street-address"
+                className={getInputClass("address")}
               />
+              {formik.touched.address && formik.errors.address && (
+                <span className="error-message">{formik.errors.address}</span>
+              )}
             </div>
           </div>
 
@@ -232,26 +170,36 @@ const Signup: React.FC = () => {
               <input
                 type="text"
                 id="city"
-                value={formData.city}
-                onChange={handleInputChange}
+                name="city"
+                value={formik.values.city}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Enter your city"
-                required
-                disabled={loading}
+                disabled={formik.isSubmitting}
                 autoComplete="address-level2"
+                className={getInputClass("city")}
               />
+              {formik.touched.city && formik.errors.city && (
+                <span className="error-message">{formik.errors.city}</span>
+              )}
             </div>
             <div className="input-group">
               <label htmlFor="state">State</label>
               <input
                 type="text"
                 id="state"
-                value={formData.state}
-                onChange={handleInputChange}
+                name="state"
+                value={formik.values.state}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Enter your state"
-                required
-                disabled={loading}
+                disabled={formik.isSubmitting}
                 autoComplete="address-level1"
+                className={getInputClass("state")}
               />
+              {formik.touched.state && formik.errors.state && (
+                <span className="error-message">{formik.errors.state}</span>
+              )}
             </div>
           </div>
 
@@ -261,26 +209,36 @@ const Signup: React.FC = () => {
               <input
                 type="email"
                 id="email"
-                value={formData.email}
-                onChange={handleInputChange}
+                name="email"
+                value={formik.values.email}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Enter your email"
-                required
-                disabled={loading}
+                disabled={formik.isSubmitting}
                 autoComplete="email"
+                className={getInputClass("email")}
               />
+              {formik.touched.email && formik.errors.email && (
+                <span className="error-message">{formik.errors.email}</span>
+              )}
             </div>
             <div className="input-group">
               <label htmlFor="password">Password</label>
               <input
                 type="password"
                 id="password"
-                value={formData.password}
-                onChange={handleInputChange}
+                name="password"
+                value={formik.values.password}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Enter your password"
-                required
-                disabled={loading}
+                disabled={formik.isSubmitting}
                 autoComplete="new-password"
+                className={getInputClass("password")}
               />
+              {formik.touched.password && formik.errors.password && (
+                <span className="error-message">{formik.errors.password}</span>
+              )}
             </div>
           </div>
 
@@ -290,18 +248,30 @@ const Signup: React.FC = () => {
               <input
                 type="password"
                 id="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
+                name="confirmPassword"
+                value={formik.values.confirmPassword}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Confirm your password"
-                required
-                disabled={loading}
+                disabled={formik.isSubmitting}
                 autoComplete="new-password"
+                className={getInputClass("confirmPassword")}
               />
+              {formik.touched.confirmPassword &&
+                formik.errors.confirmPassword && (
+                  <span className="error-message">
+                    {formik.errors.confirmPassword}
+                  </span>
+                )}
             </div>
           </div>
 
-          <button type="submit" disabled={loading} aria-busy={loading}>
-            {loading ? "Creating..." : "Create Account"}
+          <button
+            type="submit"
+            disabled={formik.isSubmitting}
+            aria-busy={formik.isSubmitting}
+          >
+            {formik.isSubmitting ? "Creating..." : "Create Account"}
           </button>
         </form>
 

@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useFormik } from "formik";
 import "./resetpassword.scss";
 import { authService } from "../../services/auth.service";
+import {
+  resetPasswordSchema,
+  ResetPasswordFormValues,
+} from "../../utils/validationSchemas";
 
 /**
  * Location state type for type safety
@@ -15,14 +20,10 @@ interface LocationState {
  * ResetPassword Component
  *
  * Handles password reset using the security code sent to user's email.
- * Also provides option to resend the security code.
+ * Uses Formik for form state management and Yup for validation.
  */
 const ResetPassword: React.FC = () => {
-  // Form state
-  const [securityCode, setSecurityCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  // State for resend loading
   const [resendLoading, setResendLoading] = useState(false);
 
   // Hooks
@@ -43,68 +44,42 @@ const ResetPassword: React.FC = () => {
   }, [email, navigate]);
 
   /**
-   * Validate password requirements
+   * Formik form configuration
    */
-  const validatePasswords = (): string | null => {
-    if (!securityCode.trim()) {
-      return "Please enter the security code";
-    }
+  const formik = useFormik<ResetPasswordFormValues>({
+    initialValues: {
+      securityCode: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+    validationSchema: resetPasswordSchema,
+    onSubmit: async (values, { setSubmitting }) => {
+      if (!email) {
+        toast.error("Email address is missing. Please start over.");
+        navigate("/forgot-password");
+        return;
+      }
 
-    if (!newPassword || !confirmPassword) {
-      return "Please enter both password fields";
-    }
+      try {
+        await authService.resetPassword({
+          email,
+          securityCode: values.securityCode,
+          newPassword: values.newPassword,
+        });
 
-    if (newPassword.length < 6) {
-      return "Password must be at least 6 characters long";
-    }
-
-    if (newPassword !== confirmPassword) {
-      return "Passwords do not match";
-    }
-
-    return null;
-  };
-
-  /**
-   * Handle form submission
-   */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate form
-    const validationError = validatePasswords();
-    if (validationError) {
-      toast.error(validationError);
-      return;
-    }
-
-    if (!email) {
-      toast.error("Email address is missing. Please start over.");
-      navigate("/forgot-password");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await authService.resetPassword({
-        email,
-        securityCode,
-        newPassword,
-      });
-
-      toast.success("Password reset successfully!");
-      navigate("/login");
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to reset password. Please try again.";
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+        toast.success("Password reset successfully!");
+        navigate("/login");
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to reset password. Please try again.";
+        toast.error(errorMessage);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+  });
 
   /**
    * Handle resend security code
@@ -132,6 +107,13 @@ const ResetPassword: React.FC = () => {
     }
   };
 
+  /**
+   * Helper to get input class with error state
+   */
+  const getInputClass = (field: keyof ResetPasswordFormValues) => {
+    return formik.touched[field] && formik.errors[field] ? "error" : "";
+  };
+
   // Don't render if no email
   if (!email) {
     return null;
@@ -146,59 +128,83 @@ const ResetPassword: React.FC = () => {
           password.
         </p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={formik.handleSubmit}>
           <div className="input-group">
-            <label htmlFor="security-code">Security Code</label>
+            <label htmlFor="securityCode">Security Code</label>
             <input
               type="text"
-              id="security-code"
-              value={securityCode}
-              onChange={(e) => setSecurityCode(e.target.value)}
+              id="securityCode"
+              name="securityCode"
+              value={formik.values.securityCode}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               placeholder="Enter the security code"
-              required
-              disabled={loading}
+              disabled={formik.isSubmitting}
               autoComplete="one-time-code"
               autoFocus
+              className={getInputClass("securityCode")}
             />
+            {formik.touched.securityCode && formik.errors.securityCode && (
+              <span className="error-message">
+                {formik.errors.securityCode}
+              </span>
+            )}
           </div>
 
           <div className="input-group">
-            <label htmlFor="new-password">New Password</label>
+            <label htmlFor="newPassword">New Password</label>
             <input
               type="password"
-              id="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              id="newPassword"
+              name="newPassword"
+              value={formik.values.newPassword}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               placeholder="Enter your new password"
-              required
-              disabled={loading}
+              disabled={formik.isSubmitting}
               autoComplete="new-password"
+              className={getInputClass("newPassword")}
             />
+            {formik.touched.newPassword && formik.errors.newPassword && (
+              <span className="error-message">{formik.errors.newPassword}</span>
+            )}
           </div>
 
           <div className="input-group">
-            <label htmlFor="confirm-password">Confirm Password</label>
+            <label htmlFor="confirmPassword">Confirm Password</label>
             <input
               type="password"
-              id="confirm-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formik.values.confirmPassword}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               placeholder="Confirm your new password"
-              required
-              disabled={loading}
+              disabled={formik.isSubmitting}
               autoComplete="new-password"
+              className={getInputClass("confirmPassword")}
             />
+            {formik.touched.confirmPassword &&
+              formik.errors.confirmPassword && (
+                <span className="error-message">
+                  {formik.errors.confirmPassword}
+                </span>
+              )}
           </div>
 
           <div className="button-group">
-            <button type="submit" disabled={loading} aria-busy={loading}>
-              {loading ? "Resetting password..." : "Reset Password"}
+            <button
+              type="submit"
+              disabled={formik.isSubmitting}
+              aria-busy={formik.isSubmitting}
+            >
+              {formik.isSubmitting ? "Resetting password..." : "Reset Password"}
             </button>
 
             <button
               type="button"
               onClick={handleResendCode}
-              disabled={resendLoading || loading}
+              disabled={resendLoading || formik.isSubmitting}
               aria-busy={resendLoading}
               className="secondary"
             >

@@ -1,67 +1,52 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useFormik } from "formik";
 import "./forgotpassword.scss";
 import { authService } from "../../services/auth.service";
+import {
+  forgotPasswordSchema,
+  ForgotPasswordFormValues,
+} from "../../utils/validationSchemas";
 
 /**
  * ForgotPassword Component
  *
  * Handles the first step of password recovery by sending
  * a security code to the user's email address.
+ * Uses Formik for form state management and Yup for validation.
  */
 const ForgotPassword: React.FC = () => {
-  // Form state
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-
   // Hooks
   const navigate = useNavigate();
 
   /**
-   * Validate email format
+   * Formik form configuration
    */
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const formik = useFormik<ForgotPasswordFormValues>({
+    initialValues: {
+      email: "",
+    },
+    validationSchema: forgotPasswordSchema,
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        await authService.forgotPassword(values.email);
 
-  /**
-   * Handle form submission
-   */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+        toast.success("Security code sent to your email!");
 
-    // Validate email
-    if (!email.trim()) {
-      toast.error("Please enter your email address");
-      return;
-    }
-
-    if (!isValidEmail(email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await authService.forgotPassword(email);
-
-      toast.success("Security code sent to your email!");
-
-      // Navigate to reset password page with email in state
-      navigate("/reset-password", { state: { email } });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to send security code. Please try again.";
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+        // Navigate to reset password page with email in state
+        navigate("/reset-password", { state: { email: values.email } });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to send security code. Please try again.";
+        toast.error(errorMessage);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+  });
 
   return (
     <div className="forgot-password-container">
@@ -69,24 +54,37 @@ const ForgotPassword: React.FC = () => {
         <h2>Reset Your Password</h2>
         <p>Enter your email address to receive a security code.</p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={formik.handleSubmit}>
           <div className="input-group">
             <label htmlFor="email">Email Address</label>
             <input
               type="email"
               id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              value={formik.values.email}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               placeholder="Enter your email"
-              required
-              disabled={loading}
+              disabled={formik.isSubmitting}
               autoComplete="email"
               autoFocus
+              className={
+                formik.touched.email && formik.errors.email ? "error" : ""
+              }
             />
+            {formik.touched.email && formik.errors.email && (
+              <span className="error-message">{formik.errors.email}</span>
+            )}
           </div>
 
-          <button type="submit" disabled={loading} aria-busy={loading}>
-            {loading ? "Sending security code..." : "Send Security Code"}
+          <button
+            type="submit"
+            disabled={formik.isSubmitting}
+            aria-busy={formik.isSubmitting}
+          >
+            {formik.isSubmitting
+              ? "Sending security code..."
+              : "Send Security Code"}
           </button>
         </form>
 

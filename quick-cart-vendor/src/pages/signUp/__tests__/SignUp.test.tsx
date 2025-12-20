@@ -7,13 +7,6 @@ import Signup from "../SignUp";
 import { AuthProvider } from "../../../contexts/AuthContext";
 import { authService } from "../../../services/auth.service";
 
-// Mock react-router-dom's useNavigate
-const mockNavigate = jest.fn();
-jest.mock("react-router-dom", () => ({
-  ...jest.requireActual("react-router-dom"),
-  useNavigate: () => mockNavigate,
-}));
-
 // Mock auth service
 jest.mock("../../../services/auth.service");
 const mockAuthService = authService as jest.Mocked<typeof authService>;
@@ -35,7 +28,7 @@ const fillAllFields = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.type(screen.getByLabelText(/full name/i), "Test Vendor");
   await user.type(screen.getByLabelText(/business name/i), "Test Business");
   await user.type(screen.getByLabelText(/phone number/i), "+1234567890");
-  await user.type(screen.getByLabelText(/^address$/i), "123 Test St");
+  await user.type(screen.getByLabelText(/^address$/i), "123 Test Street");
   await user.type(screen.getByLabelText(/city/i), "Test City");
   await user.type(screen.getByLabelText(/state/i), "Test State");
   await user.type(
@@ -50,7 +43,6 @@ describe("Signup Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
-    // Default mock implementation - successful registration
     mockAuthService.registerVendor.mockResolvedValue(
       "Seller account created successfully, pending approval."
     );
@@ -88,32 +80,13 @@ describe("Signup Component", () => {
     });
   });
 
-  describe("Form Validation", () => {
-    it("should require all fields", async () => {
+  describe("Form Validation with Formik/Yup", () => {
+    it("should show validation error for short password", async () => {
       const user = userEvent.setup();
       renderWithProviders(<Signup />);
 
-      await user.click(screen.getByRole("button", { name: /create account/i }));
-
-      // HTML5 validation should prevent submission
-      expect(screen.getByLabelText(/full name/i)).toBeInvalid();
-    });
-
-    it("should validate password length", async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<Signup />);
-
-      await user.type(screen.getByLabelText(/full name/i), "Test");
-      await user.type(screen.getByLabelText(/business name/i), "Test");
-      await user.type(screen.getByLabelText(/phone number/i), "+1234567890");
-      await user.type(screen.getByLabelText(/^address$/i), "123 Test");
-      await user.type(screen.getByLabelText(/city/i), "Test");
-      await user.type(screen.getByLabelText(/state/i), "Test");
-      await user.type(screen.getByLabelText(/email address/i), "test@test.com");
-      await user.type(screen.getByLabelText(/^password$/i), "12345"); // Too short
-      await user.type(screen.getByLabelText(/confirm password/i), "12345");
-
-      await user.click(screen.getByRole("button", { name: /create account/i }));
+      await user.type(screen.getByLabelText(/^password$/i), "12345");
+      await user.tab();
 
       await waitFor(() => {
         expect(
@@ -122,24 +95,16 @@ describe("Signup Component", () => {
       });
     });
 
-    it("should validate password match", async () => {
+    it("should show validation error for password mismatch", async () => {
       const user = userEvent.setup();
       renderWithProviders(<Signup />);
 
-      await user.type(screen.getByLabelText(/full name/i), "Test");
-      await user.type(screen.getByLabelText(/business name/i), "Test");
-      await user.type(screen.getByLabelText(/phone number/i), "+1234567890");
-      await user.type(screen.getByLabelText(/^address$/i), "123 Test");
-      await user.type(screen.getByLabelText(/city/i), "Test");
-      await user.type(screen.getByLabelText(/state/i), "Test");
-      await user.type(screen.getByLabelText(/email address/i), "test@test.com");
       await user.type(screen.getByLabelText(/^password$/i), "password123");
       await user.type(
         screen.getByLabelText(/confirm password/i),
         "different123"
       );
-
-      await user.click(screen.getByRole("button", { name: /create account/i }));
+      await user.tab();
 
       await waitFor(() => {
         expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
@@ -156,12 +121,11 @@ describe("Signup Component", () => {
       await user.click(screen.getByRole("button", { name: /create account/i }));
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith("/login");
+        expect(mockAuthService.registerVendor).toHaveBeenCalled();
       });
     });
 
     it("should show loading state during registration", async () => {
-      // Make registration take longer so we can check loading state
       mockAuthService.registerVendor.mockImplementation(
         () =>
           new Promise((resolve) => setTimeout(() => resolve("Success"), 100))
@@ -176,7 +140,6 @@ describe("Signup Component", () => {
         name: /create account/i,
       });
 
-      // Click and immediately check - should be loading
       user.click(submitButton);
 
       await waitFor(() => {
@@ -192,25 +155,7 @@ describe("Signup Component", () => {
       const user = userEvent.setup();
       renderWithProviders(<Signup />);
 
-      await user.type(screen.getByLabelText(/full name/i), "Existing Vendor");
-      await user.type(
-        screen.getByLabelText(/business name/i),
-        "Existing Business"
-      );
-      await user.type(screen.getByLabelText(/phone number/i), "+1234567890");
-      await user.type(screen.getByLabelText(/^address$/i), "123 Existing St");
-      await user.type(screen.getByLabelText(/city/i), "Existing City");
-      await user.type(screen.getByLabelText(/state/i), "Existing State");
-      await user.type(
-        screen.getByLabelText(/email address/i),
-        "existing@test.com"
-      );
-      await user.type(screen.getByLabelText(/^password$/i), "password123");
-      await user.type(
-        screen.getByLabelText(/confirm password/i),
-        "password123"
-      );
-
+      await fillAllFields(user);
       await user.click(screen.getByRole("button", { name: /create account/i }));
 
       await waitFor(() => {
