@@ -51,7 +51,7 @@ describe("Login Component", () => {
         screen.getByText("Sign in to Quick-cart-vendor")
       ).toBeInTheDocument();
       expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+      expect(screen.getByLabelText("Password")).toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: /login to your account/i })
       ).toBeInTheDocument();
@@ -60,13 +60,21 @@ describe("Login Component", () => {
     it("should render forgot password link", () => {
       renderWithProviders(<Login />);
 
-      expect(screen.getByText(/forgot password/i)).toBeInTheDocument();
+      expect(screen.getByText(/forgot password\?/i)).toBeInTheDocument();
     });
 
     it("should render signup link", () => {
       renderWithProviders(<Login />);
 
       expect(screen.getByText(/create an account/i)).toBeInTheDocument();
+    });
+
+    it("should render password toggle button", () => {
+      renderWithProviders(<Login />);
+
+      expect(
+        screen.getByRole("button", { name: /show password/i })
+      ).toBeInTheDocument();
     });
   });
 
@@ -76,7 +84,7 @@ describe("Login Component", () => {
       renderWithProviders(<Login />);
 
       await user.type(screen.getByLabelText(/email address/i), "invalid-email");
-      await user.tab(); // Trigger blur
+      await user.tab();
 
       await waitFor(() => {
         expect(
@@ -89,8 +97,8 @@ describe("Login Component", () => {
       const user = userEvent.setup();
       renderWithProviders(<Login />);
 
-      await user.type(screen.getByLabelText(/password/i), "12345");
-      await user.tab(); // Trigger blur
+      await user.type(screen.getByLabelText("Password"), "12345");
+      await user.tab();
 
       await waitFor(() => {
         expect(
@@ -109,7 +117,7 @@ describe("Login Component", () => {
         screen.getByLabelText(/email address/i),
         "vendor@test.com"
       );
-      await user.type(screen.getByLabelText(/password/i), "password123");
+      await user.type(screen.getByLabelText("Password"), "password123");
       await user.click(
         screen.getByRole("button", { name: /login to your account/i })
       );
@@ -135,7 +143,7 @@ describe("Login Component", () => {
         screen.getByLabelText(/email address/i),
         "vendor@test.com"
       );
-      await user.type(screen.getByLabelText(/password/i), "password123");
+      await user.type(screen.getByLabelText("Password"), "password123");
 
       const submitButton = screen.getByRole("button", {
         name: /login to your account/i,
@@ -161,7 +169,7 @@ describe("Login Component", () => {
         screen.getByLabelText(/email address/i),
         "vendor@test.com"
       );
-      await user.type(screen.getByLabelText(/password/i), "wrongpassword");
+      await user.type(screen.getByLabelText("Password"), "wrongpassword");
       await user.click(
         screen.getByRole("button", { name: /login to your account/i })
       );
@@ -181,7 +189,7 @@ describe("Login Component", () => {
         screen.getByLabelText(/email address/i),
         "unapproved@test.com"
       );
-      await user.type(screen.getByLabelText(/password/i), "password123");
+      await user.type(screen.getByLabelText("Password"), "password123");
       await user.click(
         screen.getByRole("button", { name: /login to your account/i })
       );
@@ -201,7 +209,7 @@ describe("Login Component", () => {
         screen.getByLabelText(/email address/i),
         "customer@test.com"
       );
-      await user.type(screen.getByLabelText(/password/i), "password123");
+      await user.type(screen.getByLabelText("Password"), "password123");
       await user.click(
         screen.getByRole("button", { name: /login to your account/i })
       );
@@ -209,6 +217,29 @@ describe("Login Component", () => {
       await waitFor(() => {
         expect(screen.getByText(/not authorized/i)).toBeInTheDocument();
       });
+    });
+  });
+
+  describe("Password Toggle", () => {
+    it("should toggle password visibility when clicking eye icon", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<Login />);
+
+      const passwordInput = screen.getByLabelText("Password");
+      const toggleButton = screen.getByRole("button", {
+        name: /show password/i,
+      });
+
+      // Initially password should be hidden
+      expect(passwordInput).toHaveAttribute("type", "password");
+
+      // Click to show password
+      await user.click(toggleButton);
+      expect(passwordInput).toHaveAttribute("type", "text");
+
+      // Click to hide password
+      await user.click(screen.getByRole("button", { name: /hide password/i }));
+      expect(passwordInput).toHaveAttribute("type", "password");
     });
   });
 
@@ -220,7 +251,7 @@ describe("Login Component", () => {
         "type",
         "email"
       );
-      expect(screen.getByLabelText(/password/i)).toHaveAttribute(
+      expect(screen.getByLabelText("Password")).toHaveAttribute(
         "type",
         "password"
       );
@@ -233,7 +264,7 @@ describe("Login Component", () => {
         "autocomplete",
         "email"
       );
-      expect(screen.getByLabelText(/password/i)).toHaveAttribute(
+      expect(screen.getByLabelText("Password")).toHaveAttribute(
         "autocomplete",
         "current-password"
       );

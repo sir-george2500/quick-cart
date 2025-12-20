@@ -35,8 +35,8 @@ const fillAllFields = async (user: ReturnType<typeof userEvent.setup>) => {
     screen.getByLabelText(/email address/i),
     "newvendor@test.com"
   );
-  await user.type(screen.getByLabelText(/^password$/i), "password123");
-  await user.type(screen.getByLabelText(/confirm password/i), "password123");
+  await user.type(screen.getByLabelText("Password"), "password123");
+  await user.type(screen.getByLabelText("Confirm Password"), "password123");
 };
 
 describe("Signup Component", () => {
@@ -60,8 +60,8 @@ describe("Signup Component", () => {
       expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/state/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
+      expect(screen.getByLabelText("Password")).toBeInTheDocument();
+      expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
     });
 
     it("should render login link", () => {
@@ -78,6 +78,16 @@ describe("Signup Component", () => {
         screen.getByRole("button", { name: /create account/i })
       ).toBeInTheDocument();
     });
+
+    it("should render password toggle buttons", () => {
+      renderWithProviders(<Signup />);
+
+      // Should have 2 toggle buttons (password and confirm password)
+      const toggleButtons = screen.getAllByRole("button", {
+        name: /show password/i,
+      });
+      expect(toggleButtons).toHaveLength(2);
+    });
   });
 
   describe("Form Validation with Formik/Yup", () => {
@@ -85,7 +95,7 @@ describe("Signup Component", () => {
       const user = userEvent.setup();
       renderWithProviders(<Signup />);
 
-      await user.type(screen.getByLabelText(/^password$/i), "12345");
+      await user.type(screen.getByLabelText("Password"), "12345");
       await user.tab();
 
       await waitFor(() => {
@@ -99,9 +109,9 @@ describe("Signup Component", () => {
       const user = userEvent.setup();
       renderWithProviders(<Signup />);
 
-      await user.type(screen.getByLabelText(/^password$/i), "password123");
+      await user.type(screen.getByLabelText("Password"), "password123");
       await user.type(
-        screen.getByLabelText(/confirm password/i),
+        screen.getByLabelText("Confirm Password"),
         "different123"
       );
       await user.tab();
@@ -172,11 +182,11 @@ describe("Signup Component", () => {
         "type",
         "email"
       );
-      expect(screen.getByLabelText(/^password$/i)).toHaveAttribute(
+      expect(screen.getByLabelText("Password")).toHaveAttribute(
         "type",
         "password"
       );
-      expect(screen.getByLabelText(/confirm password/i)).toHaveAttribute(
+      expect(screen.getByLabelText("Confirm Password")).toHaveAttribute(
         "type",
         "password"
       );

@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useFormik } from "formik";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import "./login.scss";
 import { authService } from "../../services/auth.service";
 import { useAuth } from "../../contexts/AuthContext";
@@ -14,9 +15,19 @@ import { loginSchema, LoginFormValues } from "../../utils/validationSchemas";
  * Uses Formik for form state management and Yup for validation.
  */
 const Login: React.FC = () => {
+  // Password visibility state
+  const [showPassword, setShowPassword] = useState(false);
+
   // Hooks
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  /**
+   * Toggle password visibility
+   */
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   /**
    * Formik form configuration
@@ -77,20 +88,22 @@ const Login: React.FC = () => {
         <form onSubmit={formik.handleSubmit}>
           <div className="input-group">
             <label htmlFor="email">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formik.values.email}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              placeholder="Enter your email"
-              disabled={formik.isSubmitting}
-              autoComplete="email"
-              className={
-                formik.touched.email && formik.errors.email ? "error" : ""
-              }
-            />
+            <div className="input-wrapper">
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formik.values.email}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder="Enter your email"
+                disabled={formik.isSubmitting}
+                autoComplete="email"
+                className={
+                  formik.touched.email && formik.errors.email ? "error" : ""
+                }
+              />
+            </div>
             {formik.touched.email && formik.errors.email && (
               <span className="error-message">{formik.errors.email}</span>
             )}
@@ -98,20 +111,32 @@ const Login: React.FC = () => {
 
           <div className="input-group">
             <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formik.values.password}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              placeholder="Enter your password"
-              disabled={formik.isSubmitting}
-              autoComplete="current-password"
-              className={
-                formik.touched.password && formik.errors.password ? "error" : ""
-              }
-            />
+            <div className="input-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={formik.values.password}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder="Enter your password"
+                disabled={formik.isSubmitting}
+                autoComplete="current-password"
+                className={
+                  formik.touched.password && formik.errors.password
+                    ? "error"
+                    : ""
+                }
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={togglePasswordVisibility}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
             {formik.touched.password && formik.errors.password && (
               <span className="error-message">{formik.errors.password}</span>
             )}

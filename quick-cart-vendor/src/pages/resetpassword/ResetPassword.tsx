@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useFormik } from "formik";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import "./resetpassword.scss";
 import { authService } from "../../services/auth.service";
 import {
@@ -23,7 +24,9 @@ interface LocationState {
  * Uses Formik for form state management and Yup for validation.
  */
 const ResetPassword: React.FC = () => {
-  // State for resend loading
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
 
   // Hooks
@@ -131,19 +134,21 @@ const ResetPassword: React.FC = () => {
         <form onSubmit={formik.handleSubmit}>
           <div className="input-group">
             <label htmlFor="securityCode">Security Code</label>
-            <input
-              type="text"
-              id="securityCode"
-              name="securityCode"
-              value={formik.values.securityCode}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              placeholder="Enter the security code"
-              disabled={formik.isSubmitting}
-              autoComplete="one-time-code"
-              autoFocus
-              className={getInputClass("securityCode")}
-            />
+            <div className="input-wrapper">
+              <input
+                type="text"
+                id="securityCode"
+                name="securityCode"
+                value={formik.values.securityCode}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder="Enter the security code"
+                disabled={formik.isSubmitting}
+                autoComplete="one-time-code"
+                autoFocus
+                className={getInputClass("securityCode")}
+              />
+            </div>
             {formik.touched.securityCode && formik.errors.securityCode && (
               <span className="error-message">
                 {formik.errors.securityCode}
@@ -153,18 +158,28 @@ const ResetPassword: React.FC = () => {
 
           <div className="input-group">
             <label htmlFor="newPassword">New Password</label>
-            <input
-              type="password"
-              id="newPassword"
-              name="newPassword"
-              value={formik.values.newPassword}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              placeholder="Enter your new password"
-              disabled={formik.isSubmitting}
-              autoComplete="new-password"
-              className={getInputClass("newPassword")}
-            />
+            <div className="input-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="newPassword"
+                name="newPassword"
+                value={formik.values.newPassword}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder="Enter your new password"
+                disabled={formik.isSubmitting}
+                autoComplete="new-password"
+                className={getInputClass("newPassword")}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
             {formik.touched.newPassword && formik.errors.newPassword && (
               <span className="error-message">{formik.errors.newPassword}</span>
             )}
@@ -172,18 +187,30 @@ const ResetPassword: React.FC = () => {
 
           <div className="input-group">
             <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formik.values.confirmPassword}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              placeholder="Confirm your new password"
-              disabled={formik.isSubmitting}
-              autoComplete="new-password"
-              className={getInputClass("confirmPassword")}
-            />
+            <div className="input-wrapper">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formik.values.confirmPassword}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder="Confirm your new password"
+                disabled={formik.isSubmitting}
+                autoComplete="new-password"
+                className={getInputClass("confirmPassword")}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={
+                  showConfirmPassword ? "Hide password" : "Show password"
+                }
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
             {formik.touched.confirmPassword &&
               formik.errors.confirmPassword && (
                 <span className="error-message">
