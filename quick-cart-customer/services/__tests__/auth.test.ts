@@ -1,9 +1,13 @@
-import axios from "axios";
 import { authService } from "../auth";
+import api from "../api";
 
-// Mock axios
-jest.mock("../api");
-const mockAxios = axios as jest.Mocked<typeof axios>;
+// Mock the api module
+jest.mock("../api", () => ({
+  post: jest.fn(),
+  get: jest.fn(),
+}));
+
+const mockApi = api as jest.Mocked<typeof api>;
 
 describe("authService", () => {
   beforeEach(() => {
@@ -24,14 +28,14 @@ describe("authService", () => {
         },
       };
 
-      mockAxios.post = jest.fn().mockResolvedValue(mockResponse);
+      mockApi.post = jest.fn().mockResolvedValue(mockResponse);
 
       const result = await authService.login({
         email: "john@example.com",
         password: "password123",
       });
 
-      expect(mockAxios.post).toHaveBeenCalledWith("/auth/login", {
+      expect(mockApi.post).toHaveBeenCalledWith("/auth/login", {
         email: "john@example.com",
         password: "password123",
       });
@@ -40,19 +44,20 @@ describe("authService", () => {
     });
 
     it("should throw error on invalid credentials", async () => {
-      mockAxios.post = jest.fn().mockRejectedValue({
+      const error = {
         response: {
           status: 401,
           data: { message: "Invalid credentials" },
         },
-      });
+      };
+      mockApi.post = jest.fn().mockRejectedValue(error);
 
       await expect(
         authService.login({
           email: "wrong@example.com",
           password: "wrongpass",
         })
-      ).rejects.toThrow();
+      ).rejects.toEqual(error);
     });
   });
 
@@ -70,7 +75,7 @@ describe("authService", () => {
         },
       };
 
-      mockAxios.post = jest.fn().mockResolvedValue(mockResponse);
+      mockApi.post = jest.fn().mockResolvedValue(mockResponse);
 
       const result = await authService.register({
         name: "Jane Smith",
@@ -79,7 +84,7 @@ describe("authService", () => {
         role: "CUSTOMER",
       });
 
-      expect(mockAxios.post).toHaveBeenCalledWith("/auth/register", {
+      expect(mockApi.post).toHaveBeenCalledWith("/auth/register", {
         name: "Jane Smith",
         email: "jane@example.com",
         password: "SecurePass123",
@@ -90,12 +95,13 @@ describe("authService", () => {
     });
 
     it("should handle registration error for existing user", async () => {
-      mockAxios.post = jest.fn().mockRejectedValue({
+      const error = {
         response: {
           status: 400,
           data: { message: "User already exists" },
         },
-      });
+      };
+      mockApi.post = jest.fn().mockRejectedValue(error);
 
       await expect(
         authService.register({
@@ -104,31 +110,31 @@ describe("authService", () => {
           password: "Password123",
           role: "CUSTOMER",
         })
-      ).rejects.toThrow();
+      ).rejects.toEqual(error);
     });
   });
 
   describe("logout", () => {
     it("should successfully logout", async () => {
-      mockAxios.post = jest
+      mockApi.post = jest
         .fn()
         .mockResolvedValue({ data: { message: "Logout successful" } });
 
       await authService.logout();
 
-      expect(mockAxios.post).toHaveBeenCalledWith("/auth/logout");
+      expect(mockApi.post).toHaveBeenCalledWith("/auth/logout");
     });
   });
 
   describe("forgotPassword", () => {
     it("should send password reset email", async () => {
-      mockAxios.post = jest.fn().mockResolvedValue({
+      mockApi.post = jest.fn().mockResolvedValue({
         data: { message: "Reset email sent" },
       });
 
       await authService.forgotPassword("user@example.com");
 
-      expect(mockAxios.post).toHaveBeenCalledWith("/auth/forgot-password", {
+      expect(mockApi.post).toHaveBeenCalledWith("/auth/forgot-password", {
         email: "user@example.com",
       });
     });
@@ -143,13 +149,13 @@ describe("authService", () => {
         role: "CUSTOMER",
       };
 
-      mockAxios.get = jest.fn().mockResolvedValue({
+      mockApi.get = jest.fn().mockResolvedValue({
         data: { user: mockUser },
       });
 
       const result = await authService.getCurrentUser();
 
-      expect(mockAxios.get).toHaveBeenCalledWith("/user/profile");
+      expect(mockApi.get).toHaveBeenCalledWith("/user/profile");
       expect(result).toEqual(mockUser);
     });
   });

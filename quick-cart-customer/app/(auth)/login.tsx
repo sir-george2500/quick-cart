@@ -13,13 +13,15 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { Colors } from "@/constants/Colors";
+import { ApiException } from "@/lib/api";
 
 const { width } = Dimensions.get("window");
 
@@ -40,18 +42,25 @@ export default function LoginScreen() {
   const theme = Colors[colorScheme ?? "light"];
   const styles = createStyles(theme);
 
-  const { login, loading } = useAuthStore();
+  const { login, loading, error, clearError } = useAuthStore();
   const router = useRouter();
+
+  // Clear any previous errors on mount
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   const handleLogin = async (values: { email: string; password: string }) => {
     try {
       await login(values);
       router.replace("/(tabs)");
-    } catch (err: any) {
-      Alert.alert(
-        "Login Failed",
-        err.response?.data?.message || "Invalid credentials"
-      );
+    } catch (err) {
+      // Error is already set in store, just show alert
+      const message =
+        err instanceof ApiException
+          ? err.message
+          : "Login failed. Please try again.";
+      Alert.alert("Login Failed", message);
     }
   };
 
@@ -76,10 +85,13 @@ export default function LoginScreen() {
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.heroContent}>
-              <Ionicons name="cart" size={64} color="#FFFFFF" />
+              <Image
+                source={require("@/assets/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
               <Text style={styles.heroTitle}>Quick-Cart</Text>
-              <Text style={styles.heroSubtitle}>Your favorite brands</Text>
-              <Text style={styles.heroSubtitle}>All in one place</Text>
+              <Text style={styles.heroSubtitle}>Shop smarter, live better</Text>
             </View>
           </LinearGradient>
         </View>
@@ -262,6 +274,12 @@ const createStyles = (theme: typeof Colors.light) =>
       fontSize: 16,
       color: "#FFFFFF",
       opacity: 0.9,
+    },
+    logo: {
+      width: 80,
+      height: 80,
+      marginBottom: 12,
+      borderRadius: 16,
     },
     formCard: {
       flex: 1,

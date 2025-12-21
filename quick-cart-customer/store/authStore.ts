@@ -1,24 +1,54 @@
+/**
+ * Authentication Store
+ * Zustand store for managing authentication state
+ * Uses clean architecture with proper error handling
+ */
+
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User, LoginCredentials, RegisterData } from "@/types/auth";
-import { authService } from "@/services/auth";
+import { authService, User, LoginRequest, RegisterRequest } from "@/lib/auth";
+import { ApiException } from "@/lib/api";
 import { Config } from "@/constants/Config";
 
 interface AuthState {
+  // State
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
 
   // Actions
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>;
+  login: (credentials: LoginRequest) => Promise<void>;
+  register: (userData: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   loadUser: () => Promise<void>;
   clearError: () => void;
 }
+
+/**
+ * Extract user-friendly error message from ApiException
+ * Also logs the error for debugging
+ */
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  // Log the full error for debugging
+  console.error("[AuthStore] Error:", error);
+
+  if (error instanceof ApiException) {
+    console.error("[AuthStore] ApiException:", {
+      status: error.status,
+      message: error.message,
+      code: error.code,
+    });
+    return error.message;
+  }
+  if (error instanceof Error) {
+    console.error("[AuthStore] Error message:", error.message);
+    return error.message;
+  }
+  return fallback;
+};
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -29,11 +59,27 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (credentials) => {
     set({ loading: true, error: null });
     try {
-      const { user, token } = await authService.login(credentials);
+      console.log("[AuthStore] Calling login...");
+      const response = await authService.login(credentials);
+      console.log(
+        "[AuthStore] Login response:",
+        JSON.stringify(response).slice(0, 200)
+      );
 
-      // Save token securely
+      const { user, token } = response;
+
+      // Validate response
+      if (!token || typeof token !== "string") {
+        throw new Error("Invalid response: missing or invalid token");
+      }
+      if (!user || !user.id) {
+        throw new Error("Invalid response: missing user data");
+      }
+
+      // Persist authentication data
+      console.log("[AuthStore] Saving token to SecureStore...");
       await SecureStore.setItemAsync(Config.tokenKey, token);
-      // Save user data
+      console.log("[AuthStore] Saving user to AsyncStorage...");
       await AsyncStorage.setItem(Config.userKey, JSON.stringify(user));
 
       set({
@@ -42,11 +88,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         loading: false,
         error: null,
       });
-    } catch (error: any) {
-      set({
-        loading: false,
-        error: error.response?.data?.message || "Login failed",
-      });
+      console.log("[AuthStore] Login complete!");
+    } catch (error) {
+      const message = getErrorMessage(error, "Login failed. Please try again.");
+      set({ loading: false, error: message });
       throw error;
     }
   },
@@ -54,11 +99,27 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async (userData) => {
     set({ loading: true, error: null });
     try {
-      const { user, token } = await authService.register(userData);
+      console.log("[AuthStore] Calling register...");
+      const response = await authService.register(userData);
+      console.log(
+        "[AuthStore] Register response:",
+        JSON.stringify(response).slice(0, 200)
+      );
 
-      // Save token securely
+      const { user, token } = response;
+
+      // Validate response
+      if (!token || typeof token !== "string") {
+        throw new Error("Invalid response: missing or invalid token");
+      }
+      if (!user || !user.id) {
+        throw new Error("Invalid response: missing user data");
+      }
+
+      // Persist authentication data
+      console.log("[AuthStore] Saving token to SecureStore...");
       await SecureStore.setItemAsync(Config.tokenKey, token);
-      // Save user data
+      console.log("[AuthStore] Saving user to AsyncStorage...");
       await AsyncStorage.setItem(Config.userKey, JSON.stringify(user));
 
       set({
@@ -67,28 +128,32 @@ export const useAuthStore = create<AuthState>((set) => ({
         loading: false,
         error: null,
       });
-    } catch (error: any) {
-      set({
-        loading: false,
-        error: error.response?.data?.message || "Registration failed",
-      });
+      console.log("[AuthStore] Registration complete!");
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        "Registration failed. Please try again."
+      );
+      set({ loading: false, error: message });
       throw error;
     }
   },
 
   logout: async () => {
+    set({ loading: true });
     try {
       await authService.logout();
-    } catch (error) {
+    } catch {
       // Continue with local logout even if API fails
     } finally {
-      // Clear stored data
+      // Clear persisted data
       await SecureStore.deleteItemAsync(Config.tokenKey);
       await AsyncStorage.removeItem(Config.userKey);
 
       set({
         user: null,
         isAuthenticated: false,
+        loading: false,
         error: null,
       });
     }
@@ -99,11 +164,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await authService.forgotPassword(email);
       set({ loading: false });
-    } catch (error: any) {
-      set({
-        loading: false,
-        error: error.response?.data?.message || "Failed to send reset email",
-      });
+    } catch (error) {
+      const message = getErrorMessage(error, "Failed to send reset email.");
+      set({ loading: false, error: message });
       throw error;
     }
   },
@@ -114,11 +177,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       const userData = await AsyncStorage.getItem(Config.userKey);
 
       if (token && userData) {
-        const user = JSON.parse(userData);
+        const user: User = JSON.parse(userData);
         set({ user, isAuthenticated: true });
       }
-    } catch (error) {
-      // Failed to load user, clear everything
+    } catch {
+      // Failed to load user - clear corrupted data
       await SecureStore.deleteItemAsync(Config.tokenKey);
       await AsyncStorage.removeItem(Config.userKey);
     }

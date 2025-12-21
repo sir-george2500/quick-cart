@@ -1,65 +1,68 @@
 // Theme colors supporting light and dark mode
+// Quick-Cart Brand Colors - Emerald Green Theme
 export const Colors = {
   light: {
-    // Primary colors
-    primary: "#FF6B35",
-    primaryDark: "#E85A2A",
-    secondary: "#004E89",
+    // Primary colors - Emerald Green
+    primary: "#10B981",
+    primaryDark: "#059669",
+    primaryLight: "#34D399",
+    secondary: "#1E40AF",
 
     // Background
     background: "#FFFFFF",
-    surface: "#F7F9FB",
+    surface: "#F9FAFB",
     card: "#FFFFFF",
 
     // Text
-    text: "#2D3748",
-    textSecondary: "#718096",
-    textLight: "#A0AEC0",
+    text: "#111827",
+    textSecondary: "#6B7280",
+    textLight: "#9CA3AF",
 
     // Status
-    success: "#06D6A0",
-    error: "#EF476F",
-    warning: "#FFB800",
-    info: "#3182CE",
+    success: "#22C55E",
+    error: "#EF4444",
+    warning: "#F59E0B",
+    info: "#3B82F6",
 
     // Borders
-    border: "#E2E8F0",
-    borderLight: "#F7FAFC",
+    border: "#E5E7EB",
+    borderLight: "#F3F4F6",
 
     // Other
-    disabled: "#CBD5E0",
-    placeholder: "#A0AEC0",
+    disabled: "#D1D5DB",
+    placeholder: "#9CA3AF",
     shadow: "#000000",
   },
   dark: {
-    // Primary colors
-    primary: "#FF6B35",
-    primaryDark: "#E85A2A",
-    secondary: "#4A9FD8",
+    // Primary colors - Emerald Green
+    primary: "#10B981",
+    primaryDark: "#059669",
+    primaryLight: "#34D399",
+    secondary: "#60A5FA",
 
     // Background
-    background: "#1A202C",
-    surface: "#2D3748",
-    card: "#2D3748",
+    background: "#111827",
+    surface: "#1F2937",
+    card: "#1F2937",
 
     // Text
-    text: "#F7FAFC",
-    textSecondary: "#CBD5E0",
-    textLight: "#A0AEC0",
+    text: "#F9FAFB",
+    textSecondary: "#D1D5DB",
+    textLight: "#9CA3AF",
 
     // Status
-    success: "#06D6A0",
-    error: "#FC8181",
-    warning: "#FFB800",
-    info: "#63B3ED",
+    success: "#22C55E",
+    error: "#F87171",
+    warning: "#FBBF24",
+    info: "#60A5FA",
 
     // Borders
-    border: "#4A5568",
-    borderLight: "#2D3748",
+    border: "#374151",
+    borderLight: "#1F2937",
 
     // Other
-    disabled: "#4A5568",
-    placeholder: "#718096",
+    disabled: "#4B5563",
+    placeholder: "#6B7280",
     shadow: "#000000",
   },
 };

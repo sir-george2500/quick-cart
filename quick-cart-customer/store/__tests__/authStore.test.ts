@@ -1,11 +1,20 @@
 import { renderHook, act, waitFor } from "@testing-library/react-native";
 import { useAuthStore } from "../authStore";
-import { authService } from "@/services/auth";
+import { authService } from "@/lib/auth";
+import { ApiException } from "@/lib/api";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Mock the auth service
-jest.mock("@/services/auth");
+jest.mock("@/lib/auth", () => ({
+  authService: {
+    login: jest.fn(),
+    register: jest.fn(),
+    logout: jest.fn(),
+    forgotPassword: jest.fn(),
+    getCurrentUser: jest.fn(),
+  },
+}));
 jest.mock("expo-secure-store");
 jest.mock("@react-native-async-storage/async-storage");
 
@@ -71,16 +80,10 @@ describe("useAuthStore", () => {
       expect(result.current.error).toBeNull();
     });
 
-    it("should handle login failure", async () => {
-      const mockError = {
-        response: {
-          data: {
-            message: "Invalid credentials",
-          },
-        },
-      };
+    it("should handle login failure with ApiException", async () => {
+      const apiError = new ApiException(401, "Invalid credentials");
 
-      (authService.login as jest.Mock).mockRejectedValue(mockError);
+      (authService.login as jest.Mock).mockRejectedValue(apiError);
 
       const { result } = renderHook(() => useAuthStore());
 
@@ -148,16 +151,10 @@ describe("useAuthStore", () => {
       expect(result.current.isAuthenticated).toBe(true);
     });
 
-    it("should handle registration failure", async () => {
-      const mockError = {
-        response: {
-          data: {
-            message: "User already exists",
-          },
-        },
-      };
+    it("should handle registration failure with ApiException", async () => {
+      const apiError = new ApiException(400, "User already exists");
 
-      (authService.register as jest.Mock).mockRejectedValue(mockError);
+      (authService.register as jest.Mock).mockRejectedValue(apiError);
 
       const { result } = renderHook(() => useAuthStore());
 

@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -92,9 +93,15 @@ export default function RegisterScreen() {
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.heroContent}>
-              <Ionicons name="cart" size={64} color="#FFFFFF" />
+              <Image
+                source={require("@/assets/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
               <Text style={styles.heroTitle}>Quick-Cart</Text>
-              <Text style={styles.heroSubtitle}>Join us today</Text>
+              <Text style={styles.heroSubtitle}>
+                Start your shopping journey
+              </Text>
             </View>
           </LinearGradient>
         </View>
@@ -294,6 +301,12 @@ const createStyles = (theme: typeof Colors.light) =>
       fontSize: 16,
       color: "#FFFFFF",
       opacity: 0.9,
+    },
+    logo: {
+      width: 70,
+      height: 70,
+      marginBottom: 8,
+      borderRadius: 14,
     },
     formCard: {
       flex: 1,
