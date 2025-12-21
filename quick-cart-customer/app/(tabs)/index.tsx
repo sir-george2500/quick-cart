@@ -17,11 +17,11 @@ import { useAuthStore } from "@/store/authStore";
 import {
   Header,
   SearchBar,
-  HeroBanner,
+  HeroCarousel,
   CategoryCard,
   DealCard,
   ProductCard,
-  HERO_BANNER,
+  HERO_BANNERS,
   CATEGORIES,
   FEATURED_PRODUCTS,
   DEALS,
@@ -46,8 +46,8 @@ export default function HomeScreen() {
       {/* Search */}
       <SearchBar theme={theme} />
 
-      {/* Hero Banner */}
-      <HeroBanner banner={HERO_BANNER} />
+      {/* Hero Carousel */}
+      <HeroCarousel banners={HERO_BANNERS} />
 
       {/* Categories */}
       <View style={styles.section}>

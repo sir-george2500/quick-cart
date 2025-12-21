@@ -5,13 +5,40 @@
 
 import { Category, Product, Deal, Banner } from "./types";
 
-export const HERO_BANNER: Banner = {
-  id: "1",
-  title: "Fresh & Organic",
-  subtitle: "Farm to table in 24 hours\nGet 20% off your first order",
-  buttonText: "Shop Now",
-  image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80",
-};
+export const HERO_BANNERS: Banner[] = [
+  {
+    id: "1",
+    title: "Fresh & Organic",
+    subtitle: "Farm to table in 24 hours\nGet 20% off your first order",
+    buttonText: "Shop Now",
+    image:
+      "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80",
+  },
+  {
+    id: "2",
+    title: "Farm Fresh Fruits",
+    subtitle: "Handpicked from local farms\nFree delivery on orders $50+",
+    buttonText: "Explore",
+    image:
+      "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=800&q=80",
+  },
+  {
+    id: "3",
+    title: "Organic Vegetables",
+    subtitle: "100% pesticide free\nHealthy eating starts here",
+    buttonText: "Order Now",
+    image:
+      "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&q=80",
+  },
+  {
+    id: "4",
+    title: "Weekly Bundles",
+    subtitle: "Save up to 40% with bundles\nCurated by expert nutritionists",
+    buttonText: "View Bundles",
+    image:
+      "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&q=80",
+  },
+];
 
 export const CATEGORIES: Category[] = [
   {
